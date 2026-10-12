@@ -25,6 +25,7 @@ export const api = {
   regenerate: body => call('POST', '/api/draft', body),
   saveGmailDraft: body => call('POST', '/api/gmail-draft', body),
   disconnect: () => call('POST', '/api/disconnect'),
+  signOut: () => call('POST', '/api/auth/logout'),
 };
 
 export const connectUrl = '/api/auth/google/start';

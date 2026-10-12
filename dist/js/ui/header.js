@@ -40,10 +40,12 @@ export function updateHeader(reminders) {
     <p class="menu-foot">Calculated from conversations saved in this browser. No email is checked in the background.</p>`;
 
   document.getElementById('accountMenu').innerHTML = `
-    <div class="menu-head menu-account">${'<span class="account-avatar">' + esc(initials(state.name)) + '</span>'}<span><strong>${esc(state.name)}</strong><small>Local workspace · this browser only</small></span></div>
+    <div class="menu-head menu-account">${'<span class="account-avatar">' + esc(initials(state.name)) + '</span>'}<span><strong>${esc(state.name)}</strong><small>${state.server.user ? esc(state.server.user.email) : 'Local workspace · this browser only'}</small></span></div>
     <button type="button" class="menu-item" role="menuitem" data-action="open-settings">${icon('settings', 16)}Settings</button>
     <a class="menu-item" role="menuitem" href="${href('approved')}">${icon('check-check', 16)}Approved drafts</a>
-    <button type="button" class="menu-item" role="menuitem" data-action="open-connection">${icon('plug-zap', 16)}Gmail connection details</button>
+    <button type="button" class="menu-item" role="menuitem" data-action="open-connection">${icon('plug-zap', 16)}Gmail connection</button>
     <div class="menu-sep"></div>
-    <button type="button" class="menu-item menu-danger" role="menuitem" data-action="clear-workspace">${icon('trash-2', 16)}Clear this browser’s workspace</button>`;
+    ${state.server.user
+      ? `<button type="button" class="menu-item" role="menuitem" data-action="sign-out">${icon('log-out', 16)}Sign out</button>`
+      : `<button type="button" class="menu-item menu-danger" role="menuitem" data-action="clear-workspace">${icon('trash-2', 16)}Clear this browser’s workspace</button>`}`;
 }

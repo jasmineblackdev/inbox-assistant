@@ -141,6 +141,19 @@ async function gmailDisconnect() {
   } catch (e) { toast(e.message, { tone: 'error' }); }
 }
 
+/** Ends this browser's session and removes Gmail copies from this browser. Scheduled checks keep running. */
+async function signOut() {
+  closeMenus();
+  if (!await confirmDialog({ title: 'Sign out of Triageo?', text: 'This removes your Gmail threads and drafts from this browser. Gmail stays connected, so weekday checks keep preparing drafts for next time. To stop them and delete server data, use Disconnect in Gmail connection instead.', ok: 'Sign out' })) return;
+  try {
+    await api.signOut();
+    state.items = state.items.filter(t => t.source !== 'gmail');
+    state.server.user = null;
+    save(); go('overview'); render({ force: true }); refreshConnection();
+    toast('Signed out.');
+  } catch (e) { toast(e.message, { tone: 'error' }); }
+}
+
 async function regenerate() {
   const t = currentThread(); if (!t || t.source !== 'gmail') return;
   if (t.draft?.trim() && t.draft !== t.aiDraft && !await confirmDialog({ title: 'Replace your edits?', text: 'A new AI draft will replace the reply you’ve written or edited.', ok: 'Replace with new draft' })) return;
@@ -260,6 +273,7 @@ const ACTIONS = {
   'gmail-sync': gmailSync,
   'gmail-disconnect': gmailDisconnect,
   'regenerate': regenerate,
+  'sign-out': signOut,
   'save-gmail': async () => { const t = currentThread(); if (t && await saveToGmail(t)) toast('Saved to Gmail Drafts. Nothing was sent.'); },
   'open-nav': () => setNav(true),
   'close-nav': () => setNav(false),
@@ -305,6 +319,7 @@ document.addEventListener('keydown', e => {
 });
 
 window.addEventListener('hashchange', () => { setNav(false); closeMenus(); render(); });
+window.addEventListener('pageshow', e => { if (e.persisted) loadServer(); });
 mobile.addEventListener('change', () => render());
 
 /* ---------- forms ---------- */

@@ -94,5 +94,5 @@ export function dialogBodyHTML() {
   return `<header class="dialog-head"><div><h2 id="connTitle">Gmail connection</h2><p><span class="status-pill static">${pillHTML()}</span></p></div>${close}</header>
     ${body}
     <div class="callout">${icon('shield-check', 16)}<p><strong>Nothing is sent.</strong> Replies you approve are saved to Gmail Drafts. You review and press Send in Gmail yourself.</p></div>
-    <footer class="dialog-foot">${linked(s) ? button('Disconnect and delete server data', { action: 'gmail-disconnect', variant: 'ghost', ic: 'log-out' }) : ''}<span class="spacer"></span>${s === 'disconnected' ? primaryButton() : ''}<button type="button" class="btn btn-secondary" data-close>Close</button></footer>`;
+    <footer class="dialog-foot">${linked(s) ? button('Disconnect and delete server data', { action: 'gmail-disconnect', variant: 'ghost', ic: 'trash-2' }) + button('Sign out', { action: 'sign-out', variant: 'ghost', ic: 'log-out' }) : ''}<span class="spacer"></span>${s === 'disconnected' ? primaryButton() : ''}<button type="button" class="btn btn-secondary" data-close>Close</button></footer>`;
 }
