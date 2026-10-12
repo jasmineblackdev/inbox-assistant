@@ -134,3 +134,15 @@ test('one failed AI draft does not stop the run; revoked access marks reconnect'
   assert.equal(g.marked, true);
   assert.ok(g.runs[0].error);
 });
+
+test('codes, alerts and robot senders are set aside; real people are not', async () => {
+  const item = (from, subject, headers = []) => toItem({ id: 'x', messages: [msg({ from, subject, text: 'hi', at: '2026-10-10T12:00:00Z', headers })] }, ME);
+  assert.equal(item('OpenAI <otp@tm1.openai.com>', 'Your temporary OpenAI login code').automated, true);
+  assert.equal(item('Vista Auction <info@vista.com>', 'Your saved search produced several matches').automated, true);
+  assert.equal(item('Shop <orders@shop.com>', 'Re: hi', [{ name: 'Auto-Submitted', value: 'auto-generated' }]).automated, true);
+  assert.equal(item('Bank <alerts@bank.com>', 'Heads up').automated, true);
+  assert.equal(item('Amani Williams <amani@windsorrun.com>', 'Quick Follow-Up - Windsor Run Interview').automated, false);
+  assert.equal(item('Ascent at Mallard Creek <ascentmc@greystar.com>', 'Garage Addendum').automated, false);
+  const t = item('A <a@x.com>', 'S');
+  assert.equal(t.body.includes('\n   '), false);
+});
