@@ -2,7 +2,8 @@
 // `name` is an optional extra field that older versions simply ignore.
 import { KEY, HOUR, classify, canExport, isActive, isSetAside, sortActive } from './logic.js';
 
-export const state = { items: [], demo: false, name: 'Jasmine', query: '', gmail: { email: null, lastSync: null } };
+// `server` mirrors /api/me and is never persisted locally.
+export const state = { items: [], demo: false, name: 'Jasmine', query: '', server: { loaded: false, configured: false, user: null, schedule: '' } };
 
 const valid = t => t && typeof t.id === 'string' && typeof t.subject === 'string' && typeof t.body === 'string';
 
@@ -11,13 +12,12 @@ export function load() {
     const saved = JSON.parse(localStorage.getItem(KEY) || 'null');
     if (saved && Array.isArray(saved.items)) { state.items = saved.items.filter(valid); state.demo = !!saved.demo; }
     if (saved && typeof saved.name === 'string' && saved.name.trim()) state.name = saved.name.trim().slice(0, 40);
-    if (saved?.gmail && typeof saved.gmail.email === 'string') state.gmail = { email: saved.gmail.email, lastSync: saved.gmail.lastSync || null };
   } catch { /* unreadable storage: start empty */ }
 }
 
 /** Returns false when the browser refuses to store data. */
 export function persist() {
-  try { localStorage.setItem(KEY, JSON.stringify({ items: state.items, demo: state.demo, name: state.name, gmail: state.gmail })); return true; }
+  try { localStorage.setItem(KEY, JSON.stringify({ items: state.items, demo: state.demo, name: state.name })); return true; }
   catch { return false; }
 }
 
@@ -86,16 +86,33 @@ export function demoItems(now = Date.now()) {
 }
 
 /**
- * Merge freshly fetched Gmail threads. New threads are added; known ones get the latest
- * message content while your draft, notes, approval and skip/include choices are kept.
+ * Merge threads from the server. Content and AI suggestions update; your edits, approval,
+ * notes, skips and "add to queue" choices are kept. An AI draft only replaces the editor
+ * text if you haven't changed what the AI wrote before.
  */
-export function mergeGmail(fetched) {
+export function mergeGmail(threads) {
   let added = 0, updated = 0;
-  for (const f of fetched) {
-    const t = find(f.id);
-    if (!t) { state.items.push(f); added++; continue; }
-    if (f.received !== t.received || f.needsReply !== t.needsReply) updated++;
-    Object.assign(t, { sender: f.sender, email: f.email, subject: f.subject, body: f.body, received: f.received, needsReply: f.needsReply, important: t.important || f.important });
+  for (const s of threads) {
+    const ai = s.ai || null;
+    const fields = {
+      source: 'gmail', gmailThreadId: s.gmailThreadId, sender: s.sender, email: s.email, subject: s.subject,
+      body: s.body, snippet: s.snippet, received: s.received,
+      ruleNeedsReply: s.needsReply, needsReply: s.needsReply && (ai ? ai.needsReply : true), automated: s.automated,
+      request: ai?.request || '', deadline: ai?.deadline || null,
+      ai: ai ? { why: ai.why, missing: ai.missing || [], model: ai.model, at: ai.at, tone: ai.tone, current: !!s.aiCurrent } : null,
+    };
+    const t = find(s.id);
+    if (!t) {
+      state.items.push({ id: s.id, ...fields, important: s.important, draft: ai?.draft || '', aiDraft: ai?.draft || '', notes: '', approved: false });
+      added++; continue;
+    }
+    if (s.received !== t.received) updated++;
+    if (t.userIncluded) { fields.needsReply = true; fields.automated = false; }
+    Object.assign(t, fields, { important: t.important || s.important });
+    if (ai?.draft && ai.draft !== t.aiDraft) {
+      if (!t.draft?.trim() || (t.draft === t.aiDraft && !t.approved)) { t.draft = ai.draft; t.approved = false; t.approvedText = null; }
+      t.aiDraft = ai.draft;
+    }
   }
   return { added, updated };
 }

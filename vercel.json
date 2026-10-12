@@ -2,9 +2,15 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": null,
   "buildCommand": "",
-  "installCommand": "",
   "outputDirectory": "dist",
   "cleanUrls": true,
+  "functions": {
+    "api/sync.js": { "maxDuration": 300 },
+    "api/cron.js": { "maxDuration": 300 }
+  },
+  "crons": [
+    { "path": "/api/cron", "schedule": "0 12 * * 1-5" }
+  ],
   "headers": [
     {
       "source": "/(.*)",

@@ -1,6 +1,6 @@
 # Triageo
 
-Your inbox, prioritized — every reply approved by you. A calm, private workspace for deciding which emails need you and preparing replies you approve yourself.
+Your inbox, prioritized — every reply approved by you. Triageo finds the emails that need a reply, drafts each one with AI, and saves only the replies you approve to Gmail Drafts. Nothing is ever sent for you.
 
 **Live:** https://inbox-assistant-ten.vercel.app
 
@@ -14,24 +14,43 @@ Your inbox, prioritized — every reply approved by you. A calm, private workspa
 - Reminders computed from saved conversations, a fictional demo, search (`/` to focus), and editable display name
 - Everything is stored in `localStorage` in the visitor's browser (key `inbox-studio-v1`, kept from before the rebrand so existing workspaces still load). Clear the workspace in Settings on shared devices.
 
-## Gmail (read-only)
+## Gmail assistant (server)
 
-Sign in with Google from the browser to import up to 25 inbox threads from the last 14 days (Promotions, Social, Updates and Forums skipped). Newsletters and threads where you replied last are set aside. Access uses the `gmail.readonly` scope via Google Identity Services; the token stays in memory and ends with the tab. Imported copies live in `localStorage` like manual imports. Triageo cannot send, delete or label mail.
+When the server is configured, Triageo works like an inbox assistant:
 
-### One-time setup (Google Cloud)
+1. **Connect Gmail** with Google sign-in (scopes: `gmail.readonly`, `gmail.compose`).
+2. **Find what needs a reply.** Each check reads up to 25 inbox threads from the last 14 days (Promotions, Social, Updates and Forums skipped). Rules set aside newsletters, no-reply senders and threads you answered last; OpenAI judges the rest.
+3. **Draft each one.** OpenAI writes a reply in your name, with `[placeholders]` for anything it doesn't know, plus what the sender needs and any deadline. All AI output is labelled and must be reviewed. You can regenerate with a tone and your own instructions.
+4. **You approve.** Nothing is sent. Approving saves your exact wording to **Gmail Drafts** in the original thread; editing removes approval, and re-approving updates the same draft.
+5. **On a schedule.** Vercel Cron checks weekdays at 12:00 UTC (8–9 AM Eastern, 7–8 AM in winter); the Hobby plan allows one run a day. Turn it off in Settings.
 
-1. Create a project at console.cloud.google.com and enable the **Gmail API**.
-2. **Google Auth Platform → Branding**: app name Triageo, your support email.
-3. **Audience**: External, keep it in **Testing**, and add your Gmail address as a test user.
-4. **Data access**: add the scope `https://www.googleapis.com/auth/gmail.readonly`.
-5. **Clients → Create client → Web application**. Authorized JavaScript origins: `https://inbox-assistant-ten.vercel.app` and `http://localhost:8080`. No redirect URIs.
-6. Put the client ID in `dist/js/config.js`. It is public, not a secret.
+Without the server (or with missing settings) the app runs in manual mode exactly as before.
 
-While the app is in Testing, Google shows an "unverified app" notice and only listed test users can sign in.
+### Data and security
+
+- Google refresh tokens are encrypted (AES-256-GCM) in Postgres; sessions are signed HttpOnly cookies; state-changing requests require a same-origin header.
+- Only addresses in `ALLOWED_EMAILS` can connect, so strangers can't spend your OpenAI credits.
+- Thread copies and AI drafts are kept for 14 days. **Disconnect** revokes Google access and deletes the account's server data.
+- Thread text is sent to OpenAI for drafting (`store: false`; the API may retain it up to 30 days for abuse monitoring). Email content is treated as untrusted data in the prompt.
+
+### Setup
+
+Environment variables (Vercel → Settings → Environment Variables):
+
+| Variable | Source |
+|---|---|
+| `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | Google Cloud OAuth client (Web application) |
+| `OPENAI_API_KEY` | platform.openai.com → API keys |
+| `OPENAI_MODEL` | optional, default `gpt-5-mini` |
+| `DATABASE_URL` | added by the Neon integration |
+| `SESSION_SECRET`, `TOKEN_KEY`, `CRON_SECRET` | random, `openssl rand -base64 32` |
+| `ALLOWED_EMAILS` | comma-separated Gmail addresses allowed to connect |
+
+Google Cloud: enable the Gmail API; on the OAuth consent screen add the scopes `gmail.readonly` and `gmail.compose`; create a **Web application** client with redirect URI `https://inbox-assistant-ten.vercel.app/api/auth/google/callback`. In **Testing** status Google expires refresh tokens after 7 days (you'd reconnect weekly); for personal use you can set the app to **In production** without verification and click through the unverified-app warning.
 
 ## Not built yet
 
-No AI draft generation, sending, or scheduled jobs. The weekday 8:00 AM America/New_York review is shown as **planned · not active**. A connected version needs a Gmail OAuth backend, a secure AI generation service and a scheduler. Sending would require explicit approval of each exact draft, an authenticated identity, duplicate protection and Gmail write consent.
+Outlook (Microsoft Graph) is next. A custom check time needs the Vercel Pro plan (hourly cron).
 
 ## Project layout
 
@@ -45,19 +64,21 @@ dist/                 static site, served as-is (no build step)
     router.js         hash routes (#/queue/<id>) for deep links and the back button
     format.js icons.js
     ui/               sidebar · header · overview · threadList · threadView · dialogs · toast · components
-    gmail.js          Google sign-in and read-only Gmail fetch/parsing
-    config.js         public Google OAuth client ID
+    api.js            calls to Triageo's own /api
     app.js            wiring and workflows
   brand/              Triageo logos, mark and app icons (SVG + PNG)
   favicon.ico favicon.svg manifest.webmanifest
-tests/                safety-rule, view and Gmail parsing tests
+api/                  Vercel Functions: auth, me, inbox, sync, draft, gmail-draft, disconnect, cron
+lib/                  server code: config, crypto, db, google, parse, ai, pipeline
+tests/                safety rules, views, merge, and server tests (no network)
 ```
 
 ## Run and test
 
 ```
 npm start      # http://localhost:8080
-npm test       # Node 20+, no dependencies
+npm test       # Node 20+
+vercel dev     # UI + API locally (needs the env vars above)
 ```
 
 ## Brand assets (`dist/brand/`)

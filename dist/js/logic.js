@@ -25,9 +25,11 @@ export function reasonFor(t, now = Date.now()) {
   if (t.automated) return t.source === 'gmail'
     ? 'Looks like a newsletter or automated message (unsubscribe header or no-reply sender), so it is excluded from review.'
     : 'Marked as promotional or automated when imported, so it is excluded from review.';
-  if (!t.needsReply) return t.source === 'gmail'
-    ? 'You sent the latest message in this Gmail thread, so it isn’t waiting on you.'
-    : 'Marked as not needing a reply when imported, so it is excluded from review.';
+  if (!t.needsReply) {
+    if (t.source !== 'gmail') return 'Marked as not needing a reply when imported, so it is excluded from review.';
+    if (t.ruleNeedsReply === false) return 'You sent the latest message in this Gmail thread, so it isn’t waiting on you.';
+    return `The AI judged that no reply is needed${t.ai?.why ? `: ${t.ai.why}` : '.'}`;
+  }
   const c = classify(t, now);
   if (c === 'Urgent') {
     const due = t.deadline ? Date.parse(t.deadline) : NaN;

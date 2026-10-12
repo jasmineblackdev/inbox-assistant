@@ -22,6 +22,8 @@ export function badge(t) {
 
 export function draftChip(t) {
   const s = draftState(t);
+  if (s === 'approved' && t.gmailDraftId && t.savedText === t.draft) return `<span class="chip chip-ok">${icon('mail', 12)}In Gmail Drafts</span>`;
+  if (s === 'draft' && t.aiDraft && t.draft === t.aiDraft) return `<span class="chip chip-accent">${icon('sparkles', 12)}AI draft · review</span>`;
   if (s === 'approved') return `<span class="chip chip-ok">${icon('shield-check', 12)}Approved · unsent</span>`;
   if (s === 'draft') return `<span class="chip chip-accent">${icon('pen-line', 12)}Draft · needs approval</span>`;
   return `<span class="chip">${icon('file-text', 12)}No draft yet</span>`;

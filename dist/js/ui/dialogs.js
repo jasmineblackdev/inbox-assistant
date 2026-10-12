@@ -1,6 +1,7 @@
 import { icon } from '../icons.js';
 import { esc } from '../format.js';
 import { state } from '../store.js';
+import { status, lastCheck } from './connection.js';
 
 const close = `<button type="button" class="icon-btn" data-close aria-label="Close">${icon('x', 18)}</button>`;
 
@@ -31,9 +32,8 @@ export function renderDialogs(el) {
     <form id="settingsForm" class="dialog-body">
       <header class="dialog-head"><div><h2 id="settingsTitle">Settings</h2><p>Saved in this browser only.</p></div>${close}</header>
       <section class="settings-section"><h3>Your name</h3>
-        <label class="field"><span>Used in your greeting and the reply template sign-off</span><input class="input" name="name" required maxlength="40" autocomplete="given-name"></label></section>
-      <section class="settings-section"><h3>Review routine</h3>
-        <div class="setting-row"><div><strong>Weekdays · 8:00 AM Eastern</strong><small>Unattended reviews need a server-side Gmail connection and a scheduler. Triageo only reads Gmail while this tab is open, so this isn’t running.</small></div><span class="chip chip-warn">Planned · not active</span></div></section>
+        <label class="field"><span>Used in your greeting, the reply template, and AI draft sign-offs</span><input class="input" name="name" required maxlength="40" autocomplete="given-name"></label></section>
+      <section class="settings-section" id="scheduleSection"></section>
       <section class="settings-section"><h3>How Triageo prioritizes</h3>
         <ol class="priority-list"><li>Urgent requests and deadlines within 48 hours</li><li>Important contacts requiring action</li><li>Requests waiting more than 48 hours</li><li>Routine messages needing a reply</li></ol>
         <p class="muted small">Promotions, automated messages and threads that don’t need a reply are set aside. Any edit to a draft removes its approval.</p></section>
@@ -66,6 +66,11 @@ export function openImport() {
 
 export function openSettings() {
   document.getElementById('settingsForm').elements.name.value = state.name;
+  const u = state.server.user, live = status() === 'connected' || status() === 'expired';
+  document.getElementById('scheduleSection').innerHTML = `<h3>Scheduled checks</h3>
+    ${live ? `<label class="check toggle"><input type="checkbox" name="scheduleEnabled" ${u.scheduleEnabled ? 'checked' : ''}><span><strong>Check Gmail and prepare drafts automatically</strong><small>${esc(state.server.schedule)}. Drafts wait for your approval; nothing is sent.</small></span></label>
+      <p class="muted small">${esc(lastCheck())}.${status() === 'expired' ? ' Paused until you reconnect Gmail.' : ''}</p>`
+    : `<div class="setting-row"><div><strong>Weekday morning check</strong><small>Connect Gmail to have Triageo find emails that need a reply and draft them each weekday morning.</small></div><span class="chip chip-warn">Needs Gmail</span></div>`}`;
   document.getElementById('settingsDialog').showModal();
 }
 

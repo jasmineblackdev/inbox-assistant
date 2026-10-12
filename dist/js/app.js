@@ -1,14 +1,14 @@
 // Triageo — wires state, routes and UI together. Nothing here sends email.
 import { classify, editDraft, approve, canExport } from './logic.js';
 import { state, load, persist, find, VIEWS, counts, listFor, reminders, demoItems, replyStarter, mergeGmail } from './store.js';
-import { configured, hasToken, prepare, signIn, signOut, profile, fetchThreads } from './gmail.js';
-import { sync, pillHTML, sidebarCardHTML, dialogBodyHTML } from './ui/connection.js';
+import { api, connectUrl } from './api.js';
+import { sync, status, pillHTML, sidebarCardHTML, dialogBodyHTML } from './ui/connection.js';
 import { current, go, href } from './router.js';
 import { renderNav, renderSidebarFoot } from './ui/sidebar.js';
 import { renderHeader, updateHeader } from './ui/header.js';
 import { renderOverview } from './ui/overview.js';
 import { listHeader, renderList } from './ui/threadList.js';
-import { renderThread, renderNoSelection, insightsHTML, updateDraftStatus } from './ui/threadView.js';
+import { renderThread, renderNoSelection, insightsHTML, updateDraftStatus, placeholders } from './ui/threadView.js';
 import { renderDialogs, openImport, openSettings, confirmDialog } from './ui/dialogs.js';
 import { toast } from './ui/toast.js';
 
@@ -83,41 +83,94 @@ function toggleMenu(btn) {
   if (open) { menu.hidden = false; btn.setAttribute('aria-expanded', 'true'); }
 }
 
-/* ---------- Gmail ---------- */
+/* ---------- Gmail (via Triageo's server) ---------- */
 function openConnection() {
   $('#connBody').innerHTML = dialogBodyHTML();
   if (!$('#connectionDialog').open) $('#connectionDialog').showModal();
 }
 const refreshConnection = () => { if ($('#connectionDialog').open) $('#connBody').innerHTML = dialogBodyHTML(); };
 
-async function gmailSync() {
-  if (sync.busy || !configured()) return;
+async function loadServer() {
   try {
-    if (state.demo) {
-      if (!await confirmDialog({ title: 'Leave the demo?', text: 'Importing from Gmail clears the fictional demo examples and starts your personal workspace.', ok: 'Clear demo and continue' })) return;
-      state.items = []; state.demo = false; save();
-    }
-    if (!hasToken()) await signIn(state.gmail.email || undefined);
-    sync.busy = true; render(); refreshConnection();
-    const { emailAddress } = await profile();
-    const { added, updated } = mergeGmail(await fetchThreads(emailAddress));
-    state.gmail = { email: emailAddress, lastSync: new Date().toISOString() };
+    const me = await api.me();
+    state.server = { loaded: true, configured: !!me.configured, user: me.user || null, schedule: me.schedule || '' };
+  } catch {
+    state.server = { loaded: true, configured: false, user: null, schedule: '' }; // static hosting / offline: manual mode
+  }
+  if (state.server.user) {
+    try { mergeGmail((await api.inbox()).threads); save(); }
+    catch (e) { if (e.status === 409) state.server.user.needsReconnect = true; }
+  }
+  render(); refreshConnection();
+}
+
+async function gmailConnect() {
+  if (state.demo) {
+    if (!await confirmDialog({ title: 'Leave the demo?', text: 'Connecting Gmail clears the fictional demo examples and starts your personal workspace.', ok: 'Clear demo and continue' })) return;
+    state.items = []; state.demo = false; save();
+  }
+  location.href = connectUrl; // Google's consent screen, then back to Triageo
+}
+
+async function gmailSync() {
+  if (sync.busy) return;
+  if (status() !== 'connected') return gmailConnect();
+  sync.busy = true; render(); refreshConnection();
+  try {
+    const r = await api.sync();
+    const { added } = mergeGmail((await api.inbox()).threads);
     save();
-    toast(added || updated ? `Fetched from Gmail: ${added} new, ${updated} updated.` : 'Gmail is up to date. No new threads.');
+    state.server = { ...state.server, ...(await api.me()), loaded: true };
+    toast(`Checked Gmail: ${r.found} need${r.found === 1 ? 's' : ''} a reply, ${r.drafted} new draft${r.drafted === 1 ? '' : 's'}${r.failed ? `, ${r.failed} couldn’t be drafted` : ''}${r.pending ? `, ${r.pending} more next time` : ''}.`, { tone: r.failed ? 'info' : 'ok', ms: 6000 });
     if (added && current().view === 'overview') go('queue');
   } catch (e) {
-    toast(e.message || 'Couldn’t reach Gmail.', { tone: 'error', ms: 7000 });
+    if (e.status === 409 && state.server.user) state.server.user.needsReconnect = true;
+    toast(e.message, { tone: 'error', ms: 7000 });
   } finally {
-    sync.busy = false; render(); refreshConnection();
+    sync.busy = false; render({ force: true }); refreshConnection();
   }
 }
 
 async function gmailDisconnect() {
-  if (!await confirmDialog({ title: 'Disconnect Gmail?', text: 'Triageo will give back its access token. Threads already imported stay in this browser until you clear the workspace.', ok: 'Disconnect' })) return;
-  signOut();
-  state.gmail = { email: null, lastSync: null };
-  save(); render(); refreshConnection();
-  toast('Gmail disconnected.');
+  if (!await confirmDialog({ title: 'Disconnect Gmail?', text: 'Triageo will revoke its Google access, stop scheduled checks, and delete the thread copies and drafts stored on its server. Threads already in this browser stay until you clear the workspace.', ok: 'Disconnect and delete', danger: true })) return;
+  try {
+    await api.disconnect();
+    state.server.user = null;
+    render({ force: true }); refreshConnection();
+    toast('Gmail disconnected and server data deleted.');
+  } catch (e) { toast(e.message, { tone: 'error' }); }
+}
+
+async function regenerate() {
+  const t = currentThread(); if (!t || t.source !== 'gmail') return;
+  if (t.draft?.trim() && t.draft !== t.aiDraft && !await confirmDialog({ title: 'Replace your edits?', text: 'A new AI draft will replace the reply you’ve written or edited.', ok: 'Replace with new draft' })) return;
+  const btn = $('#regenBtn'), editor = $('.editor');
+  btn.disabled = true; btn.setAttribute('aria-busy', 'true'); btn.querySelector('span').textContent = 'Drafting…'; editor?.classList.add('is-busy');
+  try {
+    const { ai } = await api.regenerate({ threadId: t.gmailThreadId, tone: $('#aiTone')?.value, instructions: $('#aiInstructions')?.value || '' });
+    mergeGmail([{ ...t, needsReply: t.ruleNeedsReply ?? true, ai, aiCurrent: true }]);
+    if (ai.draft) { editDraft(t, ai.draft); t.aiDraft = ai.draft; }
+    save(); render({ force: true });
+    toast(ai.needsReply ? 'New AI draft ready. Review it before approving.' : `The AI thinks no reply is needed: ${ai.why}`, { tone: ai.needsReply ? 'ok' : 'info', ms: 6000 });
+  } catch (e) {
+    if (e.status === 409 && state.server.user) { state.server.user.needsReconnect = true; render({ force: true }); }
+    toast(e.message, { tone: 'error', ms: 7000 });
+  } finally { const b = $('#regenBtn'); if (b?.disabled) { b.disabled = false; b.removeAttribute('aria-busy'); } $('.editor')?.classList.remove('is-busy'); }
+}
+
+/** Save the approved wording to Gmail Drafts. Called right after approval, or as a retry. */
+async function saveToGmail(t) {
+  if (!canExport(t) || status() !== 'connected') return false;
+  try {
+    const { draftId } = await api.saveGmailDraft({ threadId: t.gmailThreadId, text: t.draft, draftId: t.gmailDraftId || null });
+    t.gmailDraftId = draftId; t.savedText = t.draft;
+    save();
+    return true;
+  } catch (e) {
+    if (e.status === 409 && state.server.user) state.server.user.needsReconnect = true;
+    toast(`Approved, but not saved to Gmail: ${e.message}`, { tone: 'error', ms: 8000 });
+    return false;
+  } finally { render(); updateDraftStatus(t); }
 }
 
 /* ---------- workflows ---------- */
@@ -132,9 +185,9 @@ async function loadDemo() {
 
 async function clearWorkspace() {
   closeMenus();
-  if (!await confirmDialog({ title: 'Clear this workspace?', text: 'This deletes every conversation, draft and note saved in this browser, and disconnects Gmail. It can’t be undone.', ok: 'Clear workspace', danger: true })) return;
+  const linked = !!state.server.user;
+  if (!await confirmDialog({ title: 'Clear this workspace?', text: `This deletes every conversation, draft and note saved in this browser. It can’t be undone.${linked ? ' Gmail stays connected, so recent threads will download again; disconnect Gmail to delete server copies too.' : ''}`, ok: 'Clear workspace', danger: true })) return;
   state.items = []; state.demo = false;
-  signOut(); state.gmail = { email: null, lastSync: null };
   save();
   $('#settingsDialog').close();
   go('overview');
@@ -151,13 +204,20 @@ async function insertStarter() {
   $('#draft').focus();
 }
 
-function approveCurrent() {
+async function approveCurrent() {
   const t = currentThread(); if (!t) return;
-  if (!approve(t)) { toast('Write a draft before approving.', { tone: 'error' }); $('#draft')?.focus(); return; }
+  if (!t.draft?.trim()) { toast('Write a draft before approving.', { tone: 'error' }); $('#draft')?.focus(); return; }
+  const p = placeholders(t.draft);
+  if (p.length && !await confirmDialog({ title: 'Approve with placeholders?', text: `Your draft still contains ${p.join(', ')}. Recipients would see these exactly as written.`, ok: 'Approve anyway' })) { $('#draft')?.focus(); return; }
+  approve(t);
   save();
   render(); updateDraftStatus(t);
+  if (t.source === 'gmail' && status() === 'connected') {
+    if (await saveToGmail(t)) toast('Approved and saved to Gmail Drafts. It won’t be sent until you send it from Gmail.', { ms: 6000 });
+    return;
+  }
   $('#exportBtn')?.focus();
-  toast('Draft approved. It stays unsent until you export it.', { action: current().view === 'approved' ? null : { label: 'View approved', run: () => go('approved', t.id) } });
+  toast(t.source === 'gmail' ? 'Approved. Reconnect Gmail to save it to Drafts, or export it.' : 'Draft approved. It stays unsent until you export it.', { tone: t.source === 'gmail' ? 'info' : 'ok', action: current().view === 'approved' ? null : { label: 'View approved', run: () => go('approved', t.id) } });
 }
 
 function exportCurrent() {
@@ -185,7 +245,7 @@ function skipCurrent() {
 function restoreCurrent(include) {
   const t = currentThread(); if (!t) return;
   t.skipped = false;
-  if (include) { t.automated = false; t.needsReply = true; }
+  if (include) { t.automated = false; t.needsReply = true; t.userIncluded = true; }
   save();
   go('queue', t.id);
   toast('Back in your review queue.');
@@ -196,9 +256,11 @@ const ACTIONS = {
   'load-demo': loadDemo,
   'open-settings': () => { closeMenus(); setNav(false); openSettings(); },
   'open-connection': () => { closeMenus(); setNav(false); openConnection(); },
-  'gmail-connect': gmailSync,
+  'gmail-connect': gmailConnect,
   'gmail-sync': gmailSync,
   'gmail-disconnect': gmailDisconnect,
+  'regenerate': regenerate,
+  'save-gmail': async () => { const t = currentThread(); if (t && await saveToGmail(t)) toast('Saved to Gmail Drafts. Nothing was sent.'); },
   'open-nav': () => setNav(true),
   'close-nav': () => setNav(false),
   'toggle-menu': toggleMenu,
@@ -262,12 +324,19 @@ function bindForms() {
     go(queued ? 'queue' : 'skipped', t.id);
     toast(queued ? 'Conversation added for review.' : 'Added and set aside — it doesn’t need a reply.', { tone: queued ? 'ok' : 'info' });
   });
-  $('#settingsForm').addEventListener('submit', e => {
+  $('#settingsForm').addEventListener('submit', async e => {
     e.preventDefault();
-    const name = new FormData(e.target).get('name').trim().slice(0, 40);
+    const f = new FormData(e.target);
+    const name = f.get('name').trim().slice(0, 40);
     if (name) state.name = name;
     save();
     $('#settingsDialog').close();
+    if (state.server.user) {
+      try {
+        const me = await api.saveMe({ name: state.name, scheduleEnabled: e.target.elements.scheduleEnabled ? f.has('scheduleEnabled') : undefined });
+        state.server.user = me.user;
+      } catch (err) { toast(`Saved here, but not on the server: ${err.message}`, { tone: 'error' }); }
+    }
     render({ force: true });
     toast('Settings saved.');
   });
@@ -279,7 +348,20 @@ renderHeader($('#topbar'));
 renderSidebarFoot($('#sidebarFoot'));
 renderDialogs($('#dialogs'));
 bindForms();
-if (configured()) prepare();
+const RETURN = {
+  connected: ['Gmail connected. Checking your inbox…', 'ok'], cancelled: ['Gmail connection cancelled.', 'info'],
+  not_allowed: ['That Google account isn’t on this Triageo’s allowed list.', 'error'], scopes: ['Triageo needs both “read” and “manage drafts” access. Nothing was connected.', 'error'],
+  state: ['The sign-in link expired. Try connecting again.', 'error'], no_refresh: ['Google didn’t grant offline access. Remove Triageo at myaccount.google.com/permissions, then connect again.', 'error'],
+  unconfigured: ['The Triageo server isn’t set up yet.', 'error'], error: ['Couldn’t finish connecting Gmail. Try again.', 'error'],
+};
+const returned = new URLSearchParams(location.search).get('gmail');
+if (returned) history.replaceState(null, '', location.pathname + (location.hash || '#/overview'));
 if (!location.hash) history.replaceState(null, '', '#/overview');
 render();
+loadServer().then(() => {
+  if (!returned) return;
+  const [msg, tone] = RETURN[returned] || RETURN.error;
+  toast(msg, { tone, ms: 7000 });
+  if (returned === 'connected' && status() === 'connected') gmailSync();
+});
 setInterval(() => { if (!document.querySelector('dialog[open]')) render(); }, 60000);
