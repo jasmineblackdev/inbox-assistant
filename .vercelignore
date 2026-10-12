@@ -1,3 +1,6 @@
 tests
 .openai
 .env*
+.agents
+.claude
+skills-lock.json

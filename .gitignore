@@ -3,3 +3,6 @@
 .openai
 .env*
 node_modules
+.agents
+.claude
+skills-lock.json
