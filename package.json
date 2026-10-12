@@ -1,0 +1,10 @@
+{
+  "name": "triageo",
+  "private": true,
+  "type": "module",
+  "description": "Triageo — static inbox review workspace. No build step; dist/ is served as-is.",
+  "scripts": {
+    "test": "node --test tests/*.test.js",
+    "start": "python3 -m http.server 8080 --directory dist"
+  }
+}

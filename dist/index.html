@@ -1,1 +1,57 @@
-<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Inbox Studio · Your personal inbox assistant</title><link rel="stylesheet" href="style.css"></head><body><div class="shell"><aside><a class="brand" href="#"><span class="logo">✳</span> Inbox Studio</a><div class="workspace"><span class="avatar">J</span><div>Personal workspace<small>Gmail inbox assistant</small></div></div><p class="nav-label">WORKSPACE</p><button class="nav active" data-view="all">▤ &nbsp; Review queue <b id="totalCount">0</b></button><button class="nav" data-view="Urgent">◷ &nbsp; Urgent <b id="urgentCount">0</b></button><button class="nav" data-view="Needs Reply">↗ &nbsp; Needs reply <b id="replyCount">0</b></button><button class="nav" data-view="Follow-Up">↻ &nbsp; Follow-up <b id="followCount">0</b></button><button class="nav" data-view="approved">✓ &nbsp; Approved drafts <b id="approvedCount">0</b></button><div class="sidebar-bottom"><div class="safety">◇ <strong>You’re always in control.</strong><p>Every reply needs your individual approval.</p></div><button class="nav" id="settingsButton">⚙ &nbsp; Review settings</button></div></aside><main><header><span>YOUR INBOX, WITH INTENTION</span><div class="connection"><i></i> Gmail not connected <button id="connectionButton">Details</button></div></header><section class="intro"><div><div class="eyebrow">LESS NOISE. MORE CLARITY.</div><h1>A little space to focus.</h1><p>Know what needs you. Find the words. Reply on your terms.</p></div><button class="primary" id="importButton">＋ Import emails</button></section><section class="stats"><div><span>Needs your attention</span><strong id="attentionStat">0</strong><small>Actionable conversations</small></div><div><span>Time-sensitive</span><strong id="urgentStat">0</strong><small>Deadlines come first</small></div><div><span>Ready for your review</span><strong id="draftStat">0</strong><small>Drafts stay unsent</small></div><div class="schedule-stat"><span>Your morning ritual</span><strong>8:00 <em>AM</em></strong><small>Weekdays · Eastern · Not active</small></div></section><section class="queue"><div class="queue-heading"><div><h2 id="viewTitle">Review queue</h2><p id="queueSummary">Your next thoughtful reply starts here.</p></div><div class="queue-tools"><input id="search" aria-label="Search threads" placeholder="Search conversations…"><button id="demoButton">Try a demo</button></div></div><div class="notice" id="modeNotice">Manual import mode · Email content stays in this browser. Live Gmail sync and scheduled reviews are not active.</div><div class="queue-body"><div id="threadList" class="thread-list"></div><article id="detail" class="detail"></article></div></section><footer>Designed for a calmer inbox.<span>No automatic sending. Ever.</span></footer></main></div><dialog id="importDialog"><form id="importForm"><div class="modal-head"><h2>Add a conversation</h2><button type="button" data-close>×</button></div><p>Paste an email you want to review. Content is saved locally on this device.</p><label>Sender name<input name="sender" required placeholder="Alex Morgan"></label><label>Sender email<input name="email" type="email" required placeholder="alex@example.com"></label><label>Subject<input name="subject" required placeholder="Project feedback"></label><div class="form-row"><label>Received<input name="received" type="datetime-local" required></label><label>Deadline (optional)<input name="deadline" type="datetime-local"></label></div><label>Conversation<textarea name="body" rows="6" required placeholder="Paste the message and relevant thread context…"></textarea></label><label>What response is needed?<input name="request" required placeholder="Confirm availability for a call"></label><label class="check"><input name="important" type="checkbox"> Important contact / work request</label><label class="check"><input name="needsReply" type="checkbox" checked> This conversation needs my reply</label><label class="check"><input name="automated" type="checkbox"> Promotional or automated message (exclude)</label><button class="primary" type="submit">Add to review queue</button></form></dialog><dialog id="settingsDialog"><div class="modal-head"><h2>Your review routine</h2><button data-close>×</button></div><p>Your desired schedule is <strong>Monday–Friday, 8:00 AM America/New_York</strong>.</p><div class="setting-block"><strong>Not scheduled yet</strong><p>A live Gmail connection and a background scheduler are needed before this app can run unattended. This version supports manual email review.</p></div><h3>Your priorities</h3><ol><li>Urgent requests and approaching deadlines</li><li>Important contacts requiring action</li><li>Unanswered requests waiting over 48 hours</li><li>Routine messages needing a reply</li></ol><p>Promotions, automated messages, and threads that don’t need a reply are excluded. Drafts are editable; any edit removes approval.</p><button id="clearButton" class="danger">Clear this browser’s workspace</button></dialog><dialog id="connectionDialog"><div class="modal-head"><h2>Connect your Gmail</h2><button data-close>×</button></div><p>The Gmail connection used in your chat is separate from this app. Live integration is not available in this version.</p><div class="setting-block"><strong>Available now</strong><p>Manual import, priority sorting, conversation review, editable drafts, individual approval, and draft export.</p></div><p>Gmail OAuth, full-thread syncing, AI draft generation, and weekday background reviews need a server integration. Sending is disabled.</p></dialog><div id="toast" role="status"></div><script src="app.js"></script></body></html>
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <title>Triageo</title>
+  <meta name="description" content="Triageo — a calm, private workspace for prioritizing email and approving every reply yourself. Nothing is ever sent automatically.">
+  <meta name="theme-color" content="#0f1530">
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="apple-touch-icon" href="/brand/apple-touch-icon.png">
+  <link rel="manifest" href="/manifest.webmanifest">
+  <meta property="og:title" content="Triageo">
+  <meta property="og:description" content="Your inbox, prioritized. Every reply approved by you.">
+  <meta property="og:image" content="/brand/triageo-lockup-light.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+  <link rel="stylesheet" href="css/tokens.css">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/layout.css">
+  <script type="module" src="js/app.js"></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <div class="app">
+    <aside class="sidebar" id="sidebar" aria-label="Primary">
+      <div class="sidebar-head">
+        <a class="brand" href="#/overview" aria-label="Triageo overview">
+          <img class="brand-full" src="brand/triageo-logo-dark.svg" alt="Triageo" width="132" height="34">
+          <img class="brand-mark" src="brand/triageo-mark.svg" alt="Triageo" width="32" height="32">
+        </a>
+        <button type="button" class="icon-btn sidebar-close" data-action="close-nav" aria-label="Close navigation">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" aria-hidden="true"><path d="M18 6 6 18M6 6l12 12"/></svg>
+        </button>
+      </div>
+      <nav id="nav" class="nav" aria-label="Views"></nav>
+      <div class="sidebar-foot" id="sidebarFoot"></div>
+    </aside>
+    <div class="scrim" data-action="close-nav" aria-hidden="true"></div>
+    <div class="main-col">
+      <header class="topbar" id="topbar"></header>
+      <main id="main" tabindex="-1">
+        <div class="page" aria-busy="true" aria-label="Loading">
+          <div class="skeleton sk-title"></div>
+          <div class="kpis"><div class="skeleton sk-card"></div><div class="skeleton sk-card"></div><div class="skeleton sk-card"></div><div class="skeleton sk-card"></div></div>
+          <div class="skeleton sk-panel"></div>
+        </div>
+      </main>
+    </div>
+  </div>
+  <div id="dialogs"></div>
+  <div class="toast-region" id="toasts" role="status" aria-live="polite"></div>
+  <noscript><p class="noscript">Triageo needs JavaScript to run. Your data never leaves this browser.</p></noscript>
+</body>
+</html>
