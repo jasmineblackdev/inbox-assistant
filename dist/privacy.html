@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Privacy · Triageo</title>
+  <meta name="description" content="How Triageo handles your Gmail data.">
+  <link rel="icon" href="/favicon.ico" sizes="any">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap">
+  <link rel="stylesheet" href="css/tokens.css">
+  <link rel="stylesheet" href="css/base.css">
+  <style>
+    body { background: var(--bg); }
+    .doc { max-width: 720px; margin: 0 auto; padding: 48px 16px 64px; }
+    .doc header { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 32px; }
+    .doc h1 { font-size: var(--fs-2xl); margin-bottom: 4px; }
+    .doc h2 { margin: 32px 0 8px; }
+    .doc p, .doc li { color: var(--text-2); line-height: 1.65; }
+    .doc ul { padding-left: 20px; display: grid; gap: 6px; margin: 8px 0 0; }
+    .doc a { color: var(--accent-text); text-decoration: underline; text-underline-offset: 3px; }
+    .doc .muted { color: var(--text-3); font-size: var(--fs-sm); }
+  </style>
+</head>
+<body>
+  <main class="doc">
+    <header><a href="/" aria-label="Triageo home"><img src="brand/triageo-logo-light.svg" alt="Triageo" height="32" width="125"></a><a href="/">Back to the app</a></header>
+    <h1>Privacy policy</h1>
+    <p class="muted">Last updated October 11, 2026</p>
+
+    <h2>What Triageo does</h2>
+    <p>Triageo is a personal inbox assistant. It finds recent Gmail messages that need a reply, drafts replies with AI for you to review, and saves the replies you approve to your Gmail Drafts folder. Triageo never sends email. Access is limited to accounts the operator has explicitly allowed.</p>
+
+    <h2>Google data we access</h2>
+    <ul>
+      <li><strong>Read your mail</strong> (<code>gmail.readonly</code>): to read inbox threads from the last 14 days and decide which need a reply.</li>
+      <li><strong>Manage drafts</strong> (<code>gmail.compose</code>): only to create or update a draft containing a reply you approved. Triageo does not send, delete, archive or label messages.</li>
+      <li><strong>Your email address and name</strong>: to identify your account and sign your drafts.</li>
+    </ul>
+
+    <h2>How it is stored</h2>
+    <ul>
+      <li>Your Google access token is stored encrypted (AES-256-GCM) on Triageo’s server so scheduled checks can run.</li>
+      <li>Copies of recent threads and AI drafts are stored on Triageo’s server for up to 14 days, then deleted.</li>
+      <li>Your edits, notes and approvals are stored in your own browser.</li>
+      <li>Disconnecting Gmail in the app revokes Triageo’s Google access and deletes all server data for your account immediately.</li>
+    </ul>
+
+    <h2>Who it is shared with</h2>
+    <p>Text from threads that need a reply is sent to OpenAI solely to generate a draft. OpenAI’s API does not use it for training and may retain it for up to 30 days for abuse monitoring. Triageo does not sell your data, use it for advertising, or share it with anyone else. Hosting is provided by Vercel and the database by Neon.</p>
+
+    <h2>Google API Services User Data Policy</h2>
+    <p>Triageo’s use and transfer of information received from Google APIs adheres to the <a href="https://developers.google.com/terms/api-services-user-data-policy">Google API Services User Data Policy</a>, including the Limited Use requirements.</p>
+
+    <h2>Your choices</h2>
+    <p>You can disconnect at any time in the app, or remove Triageo’s access at <a href="https://myaccount.google.com/permissions">myaccount.google.com/permissions</a>. Clearing the workspace in Settings removes data stored in your browser.</p>
+
+    <h2>Contact</h2>
+    <p>Questions: <a href="mailto:jazzblackartist@gmail.com">jazzblackartist@gmail.com</a></p>
+  </main>
+</body>
+</html>

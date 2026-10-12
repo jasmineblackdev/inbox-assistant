@@ -37,6 +37,7 @@ export function renderDialogs(el) {
       <section class="settings-section"><h3>How Triageo prioritizes</h3>
         <ol class="priority-list"><li>Urgent requests and deadlines within 48 hours</li><li>Important contacts requiring action</li><li>Requests waiting more than 48 hours</li><li>Routine messages needing a reply</li></ol>
         <p class="muted small">Promotions, automated messages and threads that don’t need a reply are set aside. Any edit to a draft removes its approval.</p></section>
+      <p class="muted small"><a class="link" href="/privacy" target="_blank" rel="noopener">Privacy policy</a></p>
       <section class="settings-section danger-zone"><h3>Privacy</h3>
         <div class="setting-row"><div><strong>Clear this browser’s workspace</strong><small>Deletes every saved conversation, draft and note on this device.</small></div><button type="button" class="btn btn-danger btn-sm" data-action="clear-workspace">${icon('trash-2', 16)}<span>Clear</span></button></div></section>
       <footer class="dialog-foot"><button type="button" class="btn btn-secondary" data-close>Cancel</button><button type="submit" class="btn btn-primary">Save</button></footer>
