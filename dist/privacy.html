@@ -28,7 +28,7 @@
   <main class="doc">
     <header><a href="/" aria-label="Triageo home"><img src="brand/triageo-logo-light.svg" alt="Triageo" height="32" width="125"></a><a href="/">Back to the app</a></header>
     <h1>Privacy policy</h1>
-    <p class="muted">Last updated October 11, 2026</p>
+    <p class="muted">Last updated October 12, 2026</p>
 
     <h2>What Triageo does</h2>
     <p>Triageo is a personal inbox assistant. It finds recent Gmail messages that need a reply, drafts replies with AI for you to review, and saves the replies you approve to your Gmail Drafts folder. Triageo never sends email. Access is limited to accounts the operator has explicitly allowed.</p>
@@ -42,14 +42,14 @@
 
     <h2>How it is stored</h2>
     <ul>
-      <li>Your Google access token is stored encrypted (AES-256-GCM) on Triageo’s server so scheduled checks can run.</li>
+      <li>Your Google access token and your OpenRouter key are stored encrypted (AES-256-GCM) on Triageo’s server so scheduled checks can run.</li>
       <li>Copies of recent threads and AI drafts are stored on Triageo’s server for up to 14 days, then deleted.</li>
       <li>Your edits, notes and approvals are stored in your own browser.</li>
       <li>Disconnecting Gmail in the app revokes Triageo’s Google access and deletes all server data for your account immediately.</li>
     </ul>
 
     <h2>Who it is shared with</h2>
-    <p>Text from threads that need a reply is sent to OpenAI solely to generate a draft. OpenAI’s API does not use it for training and may retain it for up to 30 days for abuse monitoring. Triageo does not sell your data, use it for advertising, or share it with anyone else. Hosting is provided by Vercel and the database by Neon.</p>
+    <p>If you connect an AI account, text from threads that need a reply is sent through <a href="https://openrouter.ai/privacy">OpenRouter</a> to the AI model you choose (for example Anthropic’s Claude or OpenAI’s GPT) solely to generate a draft, and is billed to your own OpenRouter credits. Those providers’ own policies govern how long they keep it. Triageo does not sell your data, use it for advertising, or share it with anyone else. Hosting is provided by Vercel and the database by Neon.</p>
 
     <h2>Google API Services User Data Policy</h2>
     <p>Triageo’s use and transfer of information received from Google APIs adheres to the <a href="https://developers.google.com/terms/api-services-user-data-policy">Google API Services User Data Policy</a>, including the Limited Use requirements.</p>

@@ -221,3 +221,7 @@ select.input { appearance: none; background-image: url("data:image/svg+xml,%3Csv
 .editor.is-busy .editor-text { opacity: .55; }
 .toggle { padding: var(--s-3); border: 1px solid var(--border); }
 @container (max-width: 520px) { .ai-tools { grid-template-columns: 1fr auto; } .ai-tools input { grid-column: 1 / -1; grid-row: 2; } }
+.ai-row { display: flex; align-items: center; gap: var(--s-2); font-size: var(--fs-sm); color: var(--text-2); }
+.ai-row .icon { color: var(--accent); flex-shrink: 0; }
+.ai-row-off { flex-wrap: wrap; padding: var(--s-3); border-radius: var(--r-md); background: var(--accent-soft); margin-bottom: var(--s-2); }
+.ai-row-off > span { flex: 1 1 220px; }

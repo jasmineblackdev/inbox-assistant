@@ -4,3 +4,4 @@ tests
 .agents
 .claude
 skills-lock.json
+.e2e

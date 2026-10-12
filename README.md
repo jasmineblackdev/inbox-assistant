@@ -1,6 +1,6 @@
 # Triageo
 
-Your inbox, prioritized — every reply approved by you. Triageo finds the emails that need a reply, drafts each one with AI, and saves only the replies you approve to Gmail Drafts. Nothing is ever sent for you.
+Your inbox, prioritized — every reply approved by you. Triageo finds the emails that need a reply, drafts each one with AI from your own AI account, and saves only the replies you approve to Gmail Drafts. Nothing is ever sent for you.
 
 **Live:** https://inbox-assistant-ten.vercel.app
 
@@ -19,8 +19,8 @@ Your inbox, prioritized — every reply approved by you. Triageo finds the email
 When the server is configured, Triageo works like an inbox assistant:
 
 1. **Connect Gmail** with Google sign-in (scopes: `gmail.readonly`, `gmail.compose`).
-2. **Find what needs a reply.** Each check reads up to 25 inbox threads from the last 14 days (Promotions, Social, Updates and Forums skipped). Rules set aside newsletters, no-reply senders and threads you answered last; OpenAI judges the rest.
-3. **Draft each one.** OpenAI writes a reply in your name, with `[placeholders]` for anything it doesn't know, plus what the sender needs and any deadline. All AI output is labelled and must be reviewed. You can regenerate with a tone and your own instructions.
+2. **Find what needs a reply.** Each check reads up to 25 inbox threads from the last 14 days (Promotions, Social, Updates and Forums skipped). Rules set aside newsletters, login codes, alerts and threads you answered last; the AI judges the rest.
+3. **Draft each one.** Each user connects their own AI account through OpenRouter (sign in, add credits, pick Claude Opus/Sonnet/Haiku or GPT-5 mini) and pays for their own drafts. The model writes a reply in your name, with `[placeholders]` for anything it doesn't know, plus what the sender needs and any deadline. All AI output is labelled and must be reviewed. You can regenerate with a tone and your own instructions.
 4. **You approve.** Nothing is sent. Approving saves your exact wording to **Gmail Drafts** in the original thread; editing removes approval, and re-approving updates the same draft.
 5. **On a schedule.** Vercel Cron checks weekdays at 12:00 UTC (8–9 AM Eastern, 7–8 AM in winter); the Hobby plan allows one run a day. Turn it off in Settings.
 
@@ -31,7 +31,7 @@ Without the server (or with missing settings) the app runs in manual mode exactl
 - Google refresh tokens are encrypted (AES-256-GCM) in Postgres; sessions are signed HttpOnly cookies; state-changing requests require a same-origin header.
 - Only addresses in `ALLOWED_EMAILS` can connect, so strangers can't spend your OpenAI credits.
 - Thread copies and AI drafts are kept for 14 days. **Disconnect** revokes Google access and deletes the account's server data.
-- Thread text is sent to OpenAI for drafting (`store: false`; the API may retain it up to 30 days for abuse monitoring). Email content is treated as untrusted data in the prompt.
+- Thread text is sent through OpenRouter to the user's chosen model, billed to that user's credits. Each user's OpenRouter key is obtained by OAuth PKCE and stored encrypted. Email content is treated as untrusted data in the prompt.
 
 ### Setup
 
@@ -40,8 +40,6 @@ Environment variables (Vercel → Settings → Environment Variables):
 | Variable | Source |
 |---|---|
 | `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | Google Cloud OAuth client (Web application) |
-| `OPENAI_API_KEY` | platform.openai.com → API keys |
-| `OPENAI_MODEL` | optional, default `gpt-5-mini` |
 | `DATABASE_URL` | added by the Neon integration |
 | `SESSION_SECRET`, `TOKEN_KEY`, `CRON_SECRET` | random, `openssl rand -base64 32` |
 | `ALLOWED_EMAILS` | comma-separated Gmail addresses allowed to connect |
@@ -68,7 +66,7 @@ dist/                 static site, served as-is (no build step)
     app.js            wiring and workflows
   brand/              Triageo logos, mark and app icons (SVG + PNG)
   favicon.ico favicon.svg manifest.webmanifest
-api/                  Vercel Functions: auth, me, inbox, sync, draft, gmail-draft, disconnect, cron
+api/                  Vercel Functions: auth, ai (OpenRouter connect), me, inbox, sync, draft, gmail-draft, disconnect, cron
 lib/                  server code: config, crypto, db, google, parse, ai, pipeline
 tests/                safety rules, views, merge, and server tests (no network)
 ```

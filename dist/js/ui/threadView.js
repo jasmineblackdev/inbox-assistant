@@ -3,7 +3,7 @@ import { esc, fmtDate, ago, until, firstName } from '../format.js';
 import { state } from '../store.js';
 import { canExport, draftState, reasonFor, isSetAside } from '../logic.js';
 import { avatar, badge, button, emptyState } from './components.js';
-import { status } from './connection.js';
+import { status, aiStatus, aiConnectButton } from './connection.js';
 
 const PLACEHOLDER = /\[[^\]\n]{1,80}\]/g;
 export const placeholders = text => [...new Set(String(text || '').match(PLACEHOLDER) || [])];
@@ -30,9 +30,9 @@ export function insightsHTML(t, now = Date.now()) {
   const need = t.request ? `${esc(t.request)}${fromAi ? ` ${aiMark}` : ''}` : t.source === 'gmail' ? '<span class="muted">Not summarized yet. Read the conversation.</span>' : '—';
   const missing = fromAi && t.ai.missing?.length ? `<div><dt>You need to fill in ${aiMark}</dt><dd><ul class="missing">${t.ai.missing.map(m => `<li>${esc(m)}</li>`).join('')}</ul></dd></div>` : '';
   const note = fromAi
-    ? `${icon('sparkles', 14)}<span>Items marked AI were suggested by ${esc(t.ai.model || 'OpenAI')}${t.ai.current ? '' : ' before the latest message arrived'}. Check facts, dates and tone before approving.</span>`
+    ? `${icon('sparkles', 14)}<span>Items marked AI were suggested by ${esc(t.ai.model || 'your AI model')}${t.ai.current ? '' : ' before the latest message arrived'}. Check facts, dates and tone before approving.</span>`
     : t.source === 'gmail'
-      ? `${icon('info', 14)}<span>${status() === 'connected' ? 'No AI draft yet. Use “Draft with AI” to write one.' : 'Reconnect Gmail to draft with AI.'}</span>`
+      ? `${icon('info', 14)}<span>${status() !== 'connected' ? 'Reconnect Gmail to draft with AI.' : aiStatus() === 'connected' ? 'No AI draft yet. Use “Draft with AI” to write one.' : 'Connect an AI account to get AI drafts.'}</span>`
       : `${icon('info', 14)}<span>Manually imported threads use rules only. Connect Gmail for AI drafts. <button type="button" class="link" data-action="open-connection">Details</button></span>`;
   return `<header class="insights-head"><h2>${icon('sparkles', 16)}Why this needs you</h2><span class="tag" title="${fromAi ? 'Priority comes from fixed rules; items marked AI were suggested by the model.' : 'These notes come from fixed rules and what you entered at import.'}">${fromAi ? 'Rules + AI · check it' : 'Rule-based · not AI'}</span></header>
     <dl class="facts">
@@ -71,6 +71,7 @@ function actionBarHTML(t) {
 
 function aiTools(t) {
   if (!gmailLive(t)) return '';
+  if (aiStatus() !== 'connected') return `<div class="ai-row ai-row-off">${icon('sparkles', 14)}<span>Connect your AI account to have Triageo draft this reply.</span>${aiConnectButton({ size: 'btn-sm', variant: 'secondary' })}</div>`;
   const tone = t.ai?.tone || 'friendly';
   return `<div class="ai-tools" role="group" aria-label="AI draft">
     <select id="aiTone" class="input input-sm" aria-label="Tone">${[['friendly', 'Friendly'], ['concise', 'Concise'], ['formal', 'Formal']].map(([v, l]) => `<option value="${v}" ${v === tone ? 'selected' : ''}>${l}</option>`).join('')}</select>

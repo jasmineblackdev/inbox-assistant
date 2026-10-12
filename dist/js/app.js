@@ -93,7 +93,7 @@ const refreshConnection = () => { if ($('#connectionDialog').open) $('#connBody'
 async function loadServer() {
   try {
     const me = await api.me();
-    state.server = { loaded: true, configured: !!me.configured, user: me.user || null, schedule: me.schedule || '' };
+    state.server = { loaded: true, configured: !!me.configured, user: me.user || null, schedule: me.schedule || '', models: me.models || [] };
   } catch {
     state.server = { loaded: true, configured: false, user: null, schedule: '' }; // static hosting / offline: manual mode
   }
@@ -121,7 +121,10 @@ async function gmailSync() {
     const { added } = mergeGmail((await api.inbox()).threads);
     save();
     state.server = { ...state.server, ...(await api.me()), loaded: true };
-    toast(`Checked Gmail: ${r.found} need${r.found === 1 ? 's' : ''} a reply, ${r.drafted} new draft${r.drafted === 1 ? '' : 's'}${r.failed ? `, ${r.failed} couldn’t be drafted` : ''}${r.pending ? `, ${r.pending} more next time` : ''}.`, { tone: r.failed ? 'info' : 'ok', ms: 6000 });
+    const found = `Checked Gmail: ${r.found} need${r.found === 1 ? 's' : ''} a reply`;
+    if (!r.aiConnected) toast(`${found}. Connect an AI account to have them drafted.`, { tone: 'info', ms: 8000, action: { label: 'Connect', run: aiConnect } });
+    else if (r.aiProblem?.code === 'no_credits') toast(`${found}, ${r.drafted} drafted. ${r.aiProblem.message}`, { tone: 'error', ms: 9000, action: { label: 'Add credits', run: () => window.open('https://openrouter.ai/settings/credits', '_blank', 'noopener') } });
+    else toast(`${found}, ${r.drafted} new draft${r.drafted === 1 ? '' : 's'}${r.failed ? `, ${r.failed} couldn’t be drafted` : ''}${r.pending ? `, ${r.pending} more next time` : ''}.`, { tone: r.failed ? 'info' : 'ok', ms: 6000 });
     if (added && current().view === 'overview') go('queue');
   } catch (e) {
     if (e.status === 409 && state.server.user) state.server.user.needsReconnect = true;
@@ -154,6 +157,36 @@ async function signOut() {
   } catch (e) { toast(e.message, { tone: 'error' }); }
 }
 
+/* ---------- the user's own AI account (OpenRouter) ---------- */
+async function loadAiUsage() {
+  if (!state.server.user?.ai?.connected) return;
+  try {
+    const me = await api.me(true);
+    const u = me.user?.ai?.usage, el = $('#aiUsage');
+    if (!el) return;
+    if (!me.user?.ai?.connected) { state.server.user = me.user; openSettings(); return; }
+    el.textContent = u ? `Spent $${(u.usageMonthly ?? 0).toFixed(2)} this month${u.limitRemaining != null ? ` · $${u.limitRemaining.toFixed(2)} left on this key` : ''}${u.freeTier ? ' · no credits purchased yet' : ''}` : 'Usage unavailable right now';
+  } catch { const el = $('#aiUsage'); if (el) el.textContent = 'Usage unavailable right now'; }
+}
+
+function aiConnect() { location.href = '/api/ai'; }
+
+async function aiDisconnect() {
+  if (!await confirmDialog({ title: 'Disconnect your AI account?', text: 'Triageo will forget its OpenRouter key and stop drafting replies. Your credits stay in your OpenRouter account; you can also delete the “Triageo” key at openrouter.ai/settings/keys.', ok: 'Disconnect' })) return;
+  try {
+    state.server.user = (await api.saveMe({ aiDisconnect: true })).user;
+    $('#settingsDialog').close(); render({ force: true }); refreshConnection();
+    toast('AI account disconnected.');
+  } catch (e) { toast(e.message, { tone: 'error' }); }
+}
+
+/** A 424 means the AI connection is gone; 402 means credits ran out. */
+function handleAiError(e) {
+  if (e.status === 424 && state.server.user?.ai) { state.server.user.ai.connected = false; render({ force: true }); }
+  const credits = e.status === 402;
+  toast(e.message, { tone: 'error', ms: 9000, action: credits ? { label: 'Add credits', run: () => window.open('https://openrouter.ai/settings/credits', '_blank', 'noopener') } : e.status === 424 ? { label: 'Connect', run: aiConnect } : null });
+}
+
 async function regenerate() {
   const t = currentThread(); if (!t || t.source !== 'gmail') return;
   if (t.draft?.trim() && t.draft !== t.aiDraft && !await confirmDialog({ title: 'Replace your edits?', text: 'A new AI draft will replace the reply you’ve written or edited.', ok: 'Replace with new draft' })) return;
@@ -166,8 +199,8 @@ async function regenerate() {
     save(); render({ force: true });
     toast(ai.needsReply ? 'New AI draft ready. Review it before approving.' : `The AI thinks no reply is needed: ${ai.why}`, { tone: ai.needsReply ? 'ok' : 'info', ms: 6000 });
   } catch (e) {
-    if (e.status === 409 && state.server.user) { state.server.user.needsReconnect = true; render({ force: true }); }
-    toast(e.message, { tone: 'error', ms: 7000 });
+    if (e.status === 409 && state.server.user) { state.server.user.needsReconnect = true; render({ force: true }); toast(e.message, { tone: 'error', ms: 7000 }); }
+    else handleAiError(e);
   } finally { const b = $('#regenBtn'); if (b?.disabled) { b.disabled = false; b.removeAttribute('aria-busy'); } $('.editor')?.classList.remove('is-busy'); }
 }
 
@@ -267,13 +300,15 @@ function restoreCurrent(include) {
 const ACTIONS = {
   'open-import': () => { closeMenus(); setNav(false); openImport(); },
   'load-demo': loadDemo,
-  'open-settings': () => { closeMenus(); setNav(false); openSettings(); },
+  'open-settings': () => { closeMenus(); setNav(false); openSettings(); loadAiUsage(); },
   'open-connection': () => { closeMenus(); setNav(false); openConnection(); },
   'gmail-connect': gmailConnect,
   'gmail-sync': gmailSync,
   'gmail-disconnect': gmailDisconnect,
   'regenerate': regenerate,
   'sign-out': signOut,
+  'ai-connect': aiConnect,
+  'ai-disconnect': aiDisconnect,
   'save-gmail': async () => { const t = currentThread(); if (t && await saveToGmail(t)) toast('Saved to Gmail Drafts. Nothing was sent.'); },
   'open-nav': () => setNav(true),
   'close-nav': () => setNav(false),
@@ -348,7 +383,7 @@ function bindForms() {
     $('#settingsDialog').close();
     if (state.server.user) {
       try {
-        const me = await api.saveMe({ name: state.name, scheduleEnabled: e.target.elements.scheduleEnabled ? f.has('scheduleEnabled') : undefined });
+        const me = await api.saveMe({ name: state.name, scheduleEnabled: e.target.elements.scheduleEnabled ? f.has('scheduleEnabled') : undefined, aiModel: f.get('aiModel') || undefined });
         state.server.user = me.user;
       } catch (err) { toast(`Saved here, but not on the server: ${err.message}`, { tone: 'error' }); }
     }
@@ -369,11 +404,22 @@ const RETURN = {
   state: ['The sign-in link expired. Try connecting again.', 'error'], no_refresh: ['Google didn’t grant offline access. Remove Triageo at myaccount.google.com/permissions, then connect again.', 'error'],
   unconfigured: ['The Triageo server isn’t set up yet.', 'error'], error: ['Couldn’t finish connecting Gmail. Try again.', 'error'],
 };
+const AI_RETURN = {
+  connected: ['AI account connected. Triageo will draft replies with your OpenRouter credits.', 'ok'],
+  state: ['The AI sign-in link expired. Try connecting again.', 'error'], signed_out: ['Connect Gmail first, then your AI account.', 'error'],
+  error: ['Couldn’t finish connecting your AI account. Try again.', 'error'], unconfigured: ['The Triageo server isn’t set up yet.', 'error'],
+};
 const returned = new URLSearchParams(location.search).get('gmail');
-if (returned) history.replaceState(null, '', location.pathname + (location.hash || '#/overview'));
+const aiReturned = new URLSearchParams(location.search).get('ai');
+if (returned || aiReturned) history.replaceState(null, '', location.pathname + (location.hash || '#/overview'));
 if (!location.hash) history.replaceState(null, '', '#/overview');
 render();
 loadServer().then(() => {
+  if (aiReturned) {
+    const [msg, tone] = AI_RETURN[aiReturned] || AI_RETURN.error;
+    toast(msg, { tone, ms: 7000 });
+    if (aiReturned === 'connected' && status() === 'connected') gmailSync();
+  }
   if (!returned) return;
   const [msg, tone] = RETURN[returned] || RETURN.error;
   toast(msg, { tone, ms: 7000 });

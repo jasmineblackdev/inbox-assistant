@@ -1,4 +1,4 @@
-// Calls to Triageo's own server (Vercel Functions). Same-origin cookies; nothing here talks to Google or OpenAI directly.
+// Calls to Triageo's own server (Vercel Functions). Same-origin cookies; nothing here talks to Google or the AI provider directly.
 const MESSAGES = { 401: 'You’re signed out of Gmail. Connect again to continue.', 409: 'Google access expired or was revoked. Reconnect Gmail.', 429: 'Gmail was just checked. Try again in a minute.', 503: 'The Triageo server isn’t set up yet.' };
 
 async function call(method, path, body) {
@@ -18,7 +18,7 @@ async function call(method, path, body) {
 }
 
 export const api = {
-  me: () => call('GET', '/api/me'),
+  me: (usage = false) => call('GET', usage ? '/api/me?usage=1' : '/api/me'),
   saveMe: body => call('PUT', '/api/me', body),
   inbox: () => call('GET', '/api/inbox'),
   sync: () => call('POST', '/api/sync'),

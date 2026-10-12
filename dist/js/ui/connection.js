@@ -49,6 +49,15 @@ export function scheduleLine() {
   return u?.scheduleEnabled ? `Checks ${state.server.schedule}` : 'Scheduled checks are off';
 }
 
+/** 'none' (no Gmail account yet) | 'disconnected' | 'connected' */
+export function aiStatus() {
+  const u = state.server.user;
+  if (!u) return 'none';
+  return u.ai?.connected ? 'connected' : 'disconnected';
+}
+export const modelLabel = () => (state.server.models || []).find(m => m.id === state.server.user?.ai?.model)?.label || 'Claude';
+export const aiConnectButton = (opts = {}) => button('Connect AI account', { action: 'ai-connect', variant: opts.variant || 'primary', ic: 'sparkles', size: opts.size || '' });
+
 /** Primary action for the current state, or '' when nothing can be done in-app. */
 export function primaryButton({ size = '' } = {}) {
   const s = status();
@@ -60,8 +69,8 @@ export function primaryButton({ size = '' } = {}) {
 }
 
 const ticks = (items, off) => `<ul class="ticks ${off ? 'ticks-off' : ''}">${items.map(i => `<li>${icon(off ? 'x' : 'check', 14)}${i}</li>`).join('')}</ul>`;
-const CAN = ['Find recent inbox threads that need a reply', 'Draft each reply with OpenAI for you to review', 'Save the wording you approve to Gmail Drafts', 'Check again on weekday mornings'];
-const CANT = ['Send email — you send from Gmail', 'Delete, archive or label mail', 'Share your mail with anyone but OpenAI (for drafting)'];
+const CAN = ['Find recent inbox threads that need a reply', 'Draft each reply with your own AI account for you to review', 'Save the wording you approve to Gmail Drafts', 'Check again on weekday mornings'];
+const CANT = ['Send email — you send from Gmail', 'Delete, archive or label mail', 'Share your mail with anyone but your AI provider (for drafting)'];
 
 export function overviewCardHTML({ compact = false } = {}) {
   const s = status();
@@ -72,9 +81,14 @@ export function overviewCardHTML({ compact = false } = {}) {
     expired: ['Reconnect Gmail', `Google access for ${esc(state.server.user?.email)} expired or was revoked, so scheduled checks are paused.`],
     connected: ['Gmail connected', `${esc(state.server.user?.email)} · ${esc(scheduleLine())}. ${esc(lastCheck())}.`],
   }[s];
+  const ai = aiStatus();
+  const aiRow = ai === 'none' ? '' : ai === 'connected'
+    ? `<p class="ai-row">${icon('sparkles', 14)}<span>AI drafting on · ${esc(modelLabel())} through your OpenRouter account</span></p>`
+    : `<div class="ai-row ai-row-off">${icon('sparkles', 14)}<span><strong>Connect an AI account to get drafts.</strong> Sign in to OpenRouter and add your own credits; you only pay for your drafts.</span>${aiConnectButton({ size: 'btn-sm' })}</div>`;
   return `<section class="card conn-panel ${compact ? 'conn-panel-compact' : ''}">
     <div class="conn-panel-head"><span class="conn-badge conn-${COPY[s][2]}">${icon(linked(s) ? 'mail' : 'plug-zap', 16)}</span><div><h2>${head[0]}</h2><p>${head[1]}</p></div></div>
     ${compact ? '' : `<div class="conn-cols"><div><h3>Triageo can</h3>${ticks(s === 'unconfigured' ? ['Manual import', 'Priority sorting', 'Draft editing and approval', 'Plain-text export'] : CAN)}</div><div><h3>It can’t</h3>${ticks(CANT, true)}</div></div>`}
+    ${aiRow}
     <div class="conn-actions">${primaryButton({ size: compact ? 'btn-sm' : '' })}<button type="button" class="link" data-action="open-connection">${s === 'unconfigured' ? 'What setup is needed' : 'Connection details'} ${icon('arrow-right', 14)}</button></div>
   </section>`;
 }
@@ -85,11 +99,11 @@ export function dialogBodyHTML() {
   const u = state.server.user;
   let body;
   if (s === 'unconfigured' || s === 'loading') {
-    body = `<p>The Triageo server isn’t set up yet, so Gmail can’t be connected. The site owner needs to add Google, OpenAI and database settings in Vercel (see the README). Until then, import emails manually.</p>`;
+    body = `<p>The Triageo server isn’t set up yet, so Gmail can’t be connected. The site owner needs to add Google and database settings in Vercel (see the README). Until then, import emails manually.</p>`;
   } else {
     body = `${linked(s) ? `<div class="setting-row"><div><strong>${esc(u.email)}</strong><small>${esc(lastCheck())}</small></div>${primaryButton({ size: 'btn-sm' })}</div>` : '<p>Sign in with Google. Google will show exactly what Triageo is asking for: reading mail and managing drafts.</p>'}
       <div class="conn-cols"><div><h3>Triageo can</h3>${ticks(CAN)}</div><div><h3>It can’t</h3>${ticks(CANT, true)}</div></div>
-      <p class="muted small">Each check looks at up to 25 inbox threads from the last 14 days, skipping Gmail’s Promotions, Social, Updates and Forums tabs, and drafts up to 12 new replies. Your Google sign-in is stored encrypted on Triageo’s server so scheduled checks can run. Thread text and drafts are kept for 14 days. Threads that need a reply are sent to OpenAI to draft a response. OpenAI’s API doesn’t train on them, though it may keep them for up to 30 days for abuse monitoring. Disconnecting deletes everything Triageo stored on the server.</p>`;
+      <p class="muted small">Each check looks at up to 25 inbox threads from the last 14 days, skipping Gmail’s Promotions, Social, Updates and Forums tabs, and drafts up to 12 new replies. Your Google sign-in and AI connection are stored encrypted on Triageo’s server so scheduled checks can run. Thread text and drafts are kept for 14 days. Threads that need a reply are sent through OpenRouter to the AI model you choose, billed to your own OpenRouter credits. Disconnecting deletes everything Triageo stored on the server.</p>`;
   }
   return `<header class="dialog-head"><div><h2 id="connTitle">Gmail connection</h2><p><span class="status-pill static">${pillHTML()}</span></p></div>${close}</header>
     ${body}

@@ -1,7 +1,8 @@
 import { icon } from '../icons.js';
 import { esc } from '../format.js';
 import { state } from '../store.js';
-import { status, lastCheck } from './connection.js';
+import { status, lastCheck, aiStatus, aiConnectButton } from './connection.js';
+import { icon as ic } from '../icons.js';
 
 const close = `<button type="button" class="icon-btn" data-close aria-label="Close">${icon('x', 18)}</button>`;
 
@@ -33,6 +34,7 @@ export function renderDialogs(el) {
       <header class="dialog-head"><div><h2 id="settingsTitle">Settings</h2><p>Saved in this browser only.</p></div>${close}</header>
       <section class="settings-section"><h3>Your name</h3>
         <label class="field"><span>Used in your greeting, the reply template, and AI draft sign-offs</span><input class="input" name="name" required maxlength="40" autocomplete="given-name"></label></section>
+      <section class="settings-section" id="aiSection"></section>
       <section class="settings-section" id="scheduleSection"></section>
       <section class="settings-section"><h3>How Triageo prioritizes</h3>
         <ol class="priority-list"><li>Urgent requests and deadlines within 48 hours</li><li>Important contacts requiring action</li><li>Requests waiting more than 48 hours</li><li>Routine messages needing a reply</li></ol>
@@ -68,6 +70,13 @@ export function openImport() {
 export function openSettings() {
   document.getElementById('settingsForm').elements.name.value = state.name;
   const u = state.server.user, live = status() === 'connected' || status() === 'expired';
+  const ai = aiStatus(), models = state.server.models || [];
+  document.getElementById('aiSection').innerHTML = ai === 'none' ? '' : `<h3>AI drafting</h3>
+    ${ai === 'connected' ? `
+      <div class="setting-row"><div><strong>Connected to OpenRouter</strong><small id="aiUsage">Checking usage…</small></div><a class="btn btn-secondary btn-sm" href="https://openrouter.ai/settings/credits" target="_blank" rel="noopener noreferrer">${ic('arrow-right', 16)}<span>Add credits</span></a></div>
+      <label class="field"><span>Model</span><select class="input" name="aiModel">${models.map(m => `<option value="${esc(m.id)}" ${m.id === u.ai.model ? 'selected' : ''}>${esc(m.label)} — ${esc(m.note)}</option>`).join('')}</select></label>
+      <p class="muted small">Costs are rough estimates for a typical email and are charged to your OpenRouter credits. <button type="button" class="link" data-action="ai-disconnect">Disconnect AI account</button></p>`
+    : `<div class="setting-row"><div><strong>No AI account connected</strong><small>Sign in to OpenRouter and add your own credits. Triageo then drafts replies with Claude or GPT, and you pay only for your own drafts.</small></div>${aiConnectButton({ size: 'btn-sm' })}</div>`}`;
   document.getElementById('scheduleSection').innerHTML = `<h3>Scheduled checks</h3>
     ${live ? `<label class="check toggle"><input type="checkbox" name="scheduleEnabled" ${u.scheduleEnabled ? 'checked' : ''}><span><strong>Check Gmail and prepare drafts automatically</strong><small>${esc(state.server.schedule)}. Drafts wait for your approval; nothing is sent.</small></span></label>
       <p class="muted small">${esc(lastCheck())}.${status() === 'expired' ? ' Paused until you reconnect Gmail.' : ''}</p>`
