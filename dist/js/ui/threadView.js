@@ -17,9 +17,9 @@ export function insightsHTML(t, now = Date.now()) {
   return `<header class="insights-head"><h2>${icon('sparkles', 16)}Why this needs you</h2><span class="tag" title="These notes come from fixed rules and what you entered at import. No AI is involved.">Rule-based · not AI</span></header>
     <dl class="facts">
       <div><dt>Priority</dt><dd>${badge(t)}<span>${esc(reasonFor(t, now))}</span></dd></div>
-      <div><dt>What they need</dt><dd>${esc(t.request || '—')}</dd></div>
+      <div><dt>What they need</dt><dd>${t.request ? esc(t.request) : t.source === 'gmail' ? '<span class="muted">Not summarized — Triageo doesn’t use AI to read mail. Read the conversation, and add notes below.</span>' : '—'}</dd></div>
       <div><dt>Deadline</dt><dd class="stack">${due}</dd></div>
-      <div><dt>Waiting</dt><dd>${esc(ago(t.received, now).replace(' ago', ''))} since received${t.important ? ' · important contact' : ''}</dd></div>
+      <div><dt>Waiting</dt><dd>${esc(ago(t.received, now).replace(' ago', ''))} since received${t.important ? (t.source === 'gmail' ? ' · starred in Gmail' : ' · important contact') : ''}</dd></div>
       <div><dt>Reply status</dt><dd class="stack"><span class="chip chip-${status[0]}">${status[1]}</span><small>${status[2]}</small></dd></div>
     </dl>
     <p class="ai-note">${icon('info', 14)}<span>AI drafting isn’t connected, so there’s no regenerate or tone control yet. <button type="button" class="link" data-action="open-connection">Details</button></span></p>`;
@@ -45,6 +45,7 @@ export function renderThread(el, t, view, now = Date.now()) {
       <a class="btn btn-ghost btn-sm back-btn" href="#/${view}">${icon('chevron-left', 16)}<span>Back</span></a>
       <span class="detail-bar-spacer"></span>
       ${state.demo ? `<span class="chip">${icon('flask-conical', 12)}Demo example</span>` : ''}
+      ${t.source === 'gmail' ? `<a class="btn btn-ghost btn-sm" href="https://mail.google.com/mail/?authuser=${encodeURIComponent(state.gmail.email || '')}#all/${encodeURIComponent(t.gmailThreadId)}" target="_blank" rel="noopener noreferrer">${icon('mail', 16)}<span>Open in Gmail</span></a>` : ''}
       ${setAside ? '' : button('Skip', { action: 'skip', variant: 'ghost', ic: 'eye-off', size: 'btn-sm', attrs: 'title="Remove from review queue (you can undo)"' })}
     </div>
     <div class="detail-scroll">

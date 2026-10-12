@@ -25,9 +25,5 @@ export function renderNav(el, active, counts) {
 export function renderSidebarFoot(el) {
   el.innerHTML = `
     <button type="button" class="nav-item" data-action="open-settings" data-tip="Settings">${icon('settings', 18)}<span class="nav-text">Settings</span></button>
-    <button type="button" class="conn-card" data-action="open-connection" data-tip="Gmail not connected">
-      <span class="conn-icon">${icon('plug-zap', 16)}</span>
-      <span class="conn-text"><strong>Gmail not connected</strong><small>Manual import mode</small></span>
-      <span class="conn-chevron">${icon('chevron-right', 16)}</span>
-    </button>`;
+    <button type="button" class="conn-card" id="connCard" data-action="open-connection" data-tip="Gmail connection"></button>`;
 }

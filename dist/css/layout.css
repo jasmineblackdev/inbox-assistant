@@ -70,7 +70,7 @@ main[data-view="review"] { overflow: hidden; }
 /* ---------- Review: list + detail ---------- */
 .review { display: grid; grid-template-columns: var(--list-w) minmax(0, 1fr); height: 100%; }
 .list-pane { display: flex; flex-direction: column; min-height: 0; border-right: 1px solid var(--border); background: var(--surface); }
-.list-head { display: flex; justify-content: space-between; align-items: flex-start; gap: var(--s-3); padding: var(--s-4) var(--s-4) var(--s-3); }
+.list-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; gap: var(--s-3); padding: var(--s-4) var(--s-4) var(--s-3); }
 .list-head h1 { font-size: var(--fs-lg); display: flex; align-items: center; gap: var(--s-2); }
 .list-head p { color: var(--text-3); font-size: var(--fs-xs); margin-top: 2px; }
 .list-count { font-size: var(--fs-xs); font-weight: 600; color: var(--text-2); background: var(--surface-sunk); border-radius: var(--r-full); padding: 1px 8px; }
@@ -236,3 +236,5 @@ main[data-view="review"] { overflow: hidden; }
 @media (max-width: 380px) {
   .greeting-sub { display: none; }
 }
+.list-head > div:first-child { flex: 1 1 200px; min-width: 0; }
+.list-head h1 { white-space: nowrap; }

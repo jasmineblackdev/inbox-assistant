@@ -9,7 +9,7 @@ export function renderHeader(el) {
     <a class="topbar-mark" href="${href('overview')}" aria-label="Triageo overview"><img src="brand/triageo-mark.svg" alt="" width="28" height="28"></a>
     <div class="greeting"><p class="greeting-title" id="greeting"></p><p class="greeting-sub" id="today"></p></div>
     <label class="search">${icon('search', 16)}<input id="search" type="search" placeholder="Search conversations" aria-label="Search conversations" autocomplete="off"><kbd aria-hidden="true">/</kbd></label>
-    <button type="button" class="status-pill" data-action="open-connection"><span class="status-dot"></span><span>Gmail not connected</span></button>
+    <button type="button" class="status-pill" id="connPill" data-action="open-connection"></button>
     <div class="menu-wrap bell-wrap">
       <button type="button" class="icon-btn" id="bellBtn" data-action="toggle-menu" data-menu="bellMenu" aria-haspopup="true" aria-expanded="false" aria-label="Reminders">${icon('bell', 18)}<span class="bell-dot" hidden></span></button>
       <div class="menu menu-wide" id="bellMenu" hidden></div>

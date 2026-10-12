@@ -1,6 +1,8 @@
 // Triageo — wires state, routes and UI together. Nothing here sends email.
 import { classify, editDraft, approve, canExport } from './logic.js';
-import { state, load, persist, find, VIEWS, counts, listFor, reminders, demoItems, replyStarter } from './store.js';
+import { state, load, persist, find, VIEWS, counts, listFor, reminders, demoItems, replyStarter, mergeGmail } from './store.js';
+import { configured, hasToken, prepare, signIn, signOut, profile, fetchThreads } from './gmail.js';
+import { sync, pillHTML, sidebarCardHTML, dialogBodyHTML } from './ui/connection.js';
 import { current, go, href } from './router.js';
 import { renderNav, renderSidebarFoot } from './ui/sidebar.js';
 import { renderHeader, updateHeader } from './ui/header.js';
@@ -28,6 +30,8 @@ function render({ force = false } = {}) {
   const now = Date.now(), r = current();
   renderNav($('#nav'), r.view, counts(now));
   updateHeader(reminders(now));
+  $('#connPill').innerHTML = pillHTML();
+  $('#connCard').innerHTML = sidebarCardHTML();
   document.title = `${VIEWS[r.view].label} · Triageo`;
   const main = $('#main');
 
@@ -79,6 +83,43 @@ function toggleMenu(btn) {
   if (open) { menu.hidden = false; btn.setAttribute('aria-expanded', 'true'); }
 }
 
+/* ---------- Gmail ---------- */
+function openConnection() {
+  $('#connBody').innerHTML = dialogBodyHTML();
+  if (!$('#connectionDialog').open) $('#connectionDialog').showModal();
+}
+const refreshConnection = () => { if ($('#connectionDialog').open) $('#connBody').innerHTML = dialogBodyHTML(); };
+
+async function gmailSync() {
+  if (sync.busy || !configured()) return;
+  try {
+    if (state.demo) {
+      if (!await confirmDialog({ title: 'Leave the demo?', text: 'Importing from Gmail clears the fictional demo examples and starts your personal workspace.', ok: 'Clear demo and continue' })) return;
+      state.items = []; state.demo = false; save();
+    }
+    if (!hasToken()) await signIn(state.gmail.email || undefined);
+    sync.busy = true; render(); refreshConnection();
+    const { emailAddress } = await profile();
+    const { added, updated } = mergeGmail(await fetchThreads(emailAddress));
+    state.gmail = { email: emailAddress, lastSync: new Date().toISOString() };
+    save();
+    toast(added || updated ? `Fetched from Gmail: ${added} new, ${updated} updated.` : 'Gmail is up to date. No new threads.');
+    if (added && current().view === 'overview') go('queue');
+  } catch (e) {
+    toast(e.message || 'Couldn’t reach Gmail.', { tone: 'error', ms: 7000 });
+  } finally {
+    sync.busy = false; render(); refreshConnection();
+  }
+}
+
+async function gmailDisconnect() {
+  if (!await confirmDialog({ title: 'Disconnect Gmail?', text: 'Triageo will give back its access token. Threads already imported stay in this browser until you clear the workspace.', ok: 'Disconnect' })) return;
+  signOut();
+  state.gmail = { email: null, lastSync: null };
+  save(); render(); refreshConnection();
+  toast('Gmail disconnected.');
+}
+
 /* ---------- workflows ---------- */
 async function loadDemo() {
   if (state.items.length && !state.demo) { toast('Clear your workspace in Settings before loading demo examples.', { tone: 'info' }); return; }
@@ -91,8 +132,9 @@ async function loadDemo() {
 
 async function clearWorkspace() {
   closeMenus();
-  if (!await confirmDialog({ title: 'Clear this workspace?', text: 'This deletes every conversation, draft and note saved in this browser. It can’t be undone.', ok: 'Clear workspace', danger: true })) return;
+  if (!await confirmDialog({ title: 'Clear this workspace?', text: 'This deletes every conversation, draft and note saved in this browser, and disconnects Gmail. It can’t be undone.', ok: 'Clear workspace', danger: true })) return;
   state.items = []; state.demo = false;
+  signOut(); state.gmail = { email: null, lastSync: null };
   save();
   $('#settingsDialog').close();
   go('overview');
@@ -153,7 +195,10 @@ const ACTIONS = {
   'open-import': () => { closeMenus(); setNav(false); openImport(); },
   'load-demo': loadDemo,
   'open-settings': () => { closeMenus(); setNav(false); openSettings(); },
-  'open-connection': () => { closeMenus(); setNav(false); $('#connectionDialog').showModal(); },
+  'open-connection': () => { closeMenus(); setNav(false); openConnection(); },
+  'gmail-connect': gmailSync,
+  'gmail-sync': gmailSync,
+  'gmail-disconnect': gmailDisconnect,
   'open-nav': () => setNav(true),
   'close-nav': () => setNav(false),
   'toggle-menu': toggleMenu,
@@ -234,6 +279,7 @@ renderHeader($('#topbar'));
 renderSidebarFoot($('#sidebarFoot'));
 renderDialogs($('#dialogs'));
 bindForms();
+if (configured()) prepare();
 if (!location.hash) history.replaceState(null, '', '#/overview');
 render();
 setInterval(() => { if (!document.querySelector('dialog[open]')) render(); }, 60000);

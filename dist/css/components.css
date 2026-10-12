@@ -192,3 +192,19 @@ button.status-pill:hover { border-color: #c5c4bc; color: var(--text); }
 .sk-card { height: 104px; }
 .sk-panel { height: 320px; }
 @keyframes shimmer { to { background-position: -200% 0; } }
+
+/* ---------- Gmail connection states ---------- */
+.dot-on { background: #22a35a; box-shadow: 0 0 0 3px #dcf3e5; }
+.dot-warn { background: #d98a1a; box-shadow: 0 0 0 3px #fcefd9; }
+.conn-badge.conn-on { background: var(--ok-bg); color: var(--ok); }
+.conn-badge.conn-warn { background: var(--warn-bg); color: var(--warn); }
+.conn-icon.conn-on { color: #6ee7a8; }
+.conn-icon.conn-warn { color: #fbbf6b; }
+.conn-actions { display: flex; align-items: center; gap: var(--s-4); flex-wrap: wrap; }
+.list-actions { display: flex; gap: var(--s-2); flex-shrink: 0; }
+.dialog-foot .spacer { flex: 1; }
+.mono, code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; }
+.mono { display: block; margin-top: var(--s-2); color: var(--text-3); overflow-wrap: anywhere; }
+code { padding: 1px 5px; border-radius: 4px; background: var(--surface-sunk); }
+[aria-busy="true"] .icon { animation: spin 900ms linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }

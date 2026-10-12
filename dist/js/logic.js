@@ -22,8 +22,12 @@ export const isSetAside = (t, now = Date.now()) => !t.approved && !classify(t, n
 /** Plain-language, rule-based explanation of why a thread was ranked where it is. */
 export function reasonFor(t, now = Date.now()) {
   if (t.skipped) return 'You skipped this thread. Restore it to bring it back into review.';
-  if (t.automated) return 'Marked as promotional or automated when imported, so it is excluded from review.';
-  if (!t.needsReply) return 'Marked as not needing a reply when imported, so it is excluded from review.';
+  if (t.automated) return t.source === 'gmail'
+    ? 'Looks like a newsletter or automated message (unsubscribe header or no-reply sender), so it is excluded from review.'
+    : 'Marked as promotional or automated when imported, so it is excluded from review.';
+  if (!t.needsReply) return t.source === 'gmail'
+    ? 'You sent the latest message in this Gmail thread, so it isn’t waiting on you.'
+    : 'Marked as not needing a reply when imported, so it is excluded from review.';
   const c = classify(t, now);
   if (c === 'Urgent') {
     const due = t.deadline ? Date.parse(t.deadline) : NaN;
@@ -32,7 +36,7 @@ export function reasonFor(t, now = Date.now()) {
     return 'The subject or request uses urgent language.';
   }
   if (c === 'Follow-Up') return 'This request has been waiting more than 48 hours.';
-  if (t.important) return 'An important contact is waiting for your action.';
+  if (t.important) return t.source === 'gmail' ? 'You starred this thread in Gmail.' : 'An important contact is waiting for your action.';
   return 'The sender is waiting for a response.';
 }
 

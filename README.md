@@ -14,9 +14,24 @@ Your inbox, prioritized — every reply approved by you. A calm, private workspa
 - Reminders computed from saved conversations, a fictional demo, search (`/` to focus), and editable display name
 - Everything is stored in `localStorage` in the visitor's browser (key `inbox-studio-v1`, kept from before the rebrand so existing workspaces still load). Clear the workspace in Settings on shared devices.
 
+## Gmail (read-only)
+
+Sign in with Google from the browser to import up to 25 inbox threads from the last 14 days (Promotions, Social, Updates and Forums skipped). Newsletters and threads where you replied last are set aside. Access uses the `gmail.readonly` scope via Google Identity Services; the token stays in memory and ends with the tab. Imported copies live in `localStorage` like manual imports. Triageo cannot send, delete or label mail.
+
+### One-time setup (Google Cloud)
+
+1. Create a project at console.cloud.google.com and enable the **Gmail API**.
+2. **Google Auth Platform → Branding**: app name Triageo, your support email.
+3. **Audience**: External, keep it in **Testing**, and add your Gmail address as a test user.
+4. **Data access**: add the scope `https://www.googleapis.com/auth/gmail.readonly`.
+5. **Clients → Create client → Web application**. Authorized JavaScript origins: `https://inbox-assistant-ten.vercel.app` and `http://localhost:8080`. No redirect URIs.
+6. Put the client ID in `dist/js/config.js`. It is public, not a secret.
+
+While the app is in Testing, Google shows an "unverified app" notice and only listed test users can sign in.
+
 ## Not built yet
 
-No live Gmail connection, AI draft generation, sending, or scheduled jobs. The weekday 8:00 AM America/New_York review is shown as **planned · not active**. A connected version needs a Gmail OAuth backend, a secure AI generation service and a scheduler. Sending would require explicit approval of each exact draft, an authenticated identity, duplicate protection and Gmail write consent.
+No AI draft generation, sending, or scheduled jobs. The weekday 8:00 AM America/New_York review is shown as **planned · not active**. A connected version needs a Gmail OAuth backend, a secure AI generation service and a scheduler. Sending would require explicit approval of each exact draft, an authenticated identity, duplicate protection and Gmail write consent.
 
 ## Project layout
 
@@ -30,10 +45,12 @@ dist/                 static site, served as-is (no build step)
     router.js         hash routes (#/queue/<id>) for deep links and the back button
     format.js icons.js
     ui/               sidebar · header · overview · threadList · threadView · dialogs · toast · components
+    gmail.js          Google sign-in and read-only Gmail fetch/parsing
+    config.js         public Google OAuth client ID
     app.js            wiring and workflows
   brand/              Triageo logos, mark and app icons (SVG + PNG)
   favicon.ico favicon.svg manifest.webmanifest
-tests/logic.test.js   safety-rule and view tests
+tests/                safety-rule, view and Gmail parsing tests
 ```
 
 ## Run and test

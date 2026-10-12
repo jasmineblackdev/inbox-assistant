@@ -3,6 +3,7 @@ import { esc, fmtShort, preview } from '../format.js';
 import { href } from '../router.js';
 import { state, VIEWS } from '../store.js';
 import { avatar, badge, draftChip, dueChip, button, emptyState } from './components.js';
+import { status, primaryButton } from './connection.js';
 
 const EMPTY = {
   queue: ['Your review queue is clear', 'Import an email you need to answer and Triageo will rank it for you.'],
@@ -16,7 +17,7 @@ const EMPTY = {
 export function listHeader(view, n) {
   const sub = view === 'approved' ? 'Approved for export · never sent' : view === 'skipped' ? 'Not in your review queue' : 'Sorted by priority, then oldest first';
   return `<div class="list-head"><div><h1>${VIEWS[view].label} <span class="list-count">${n}</span></h1><p>${sub}</p></div>
-    ${button('Import', { action: 'open-import', variant: 'secondary', ic: 'plus', size: 'btn-sm' })}</div>
+    <div class="list-actions">${status() === 'unconfigured' || status() === 'disconnected' ? '' : primaryButton({ size: 'btn-sm' })}${button('Import', { action: 'open-import', variant: 'secondary', ic: 'plus', size: 'btn-sm' })}</div></div>
     ${state.demo ? `<p class="mode-note">${icon('flask-conical', 14)}Demo workspace · fictional examples only</p>` : ''}`;
 }
 
@@ -37,8 +38,8 @@ export function renderList(el, view, list, selectedId, now = Date.now()) {
       <span class="thread-main">
         <span class="thread-top"><strong class="thread-sender">${esc(t.sender)}</strong><time datetime="${esc(t.received)}">${esc(fmtShort(t.received, now))}</time></span>
         <span class="thread-subject">${esc(t.subject)}</span>
-        <span class="thread-preview">${esc(preview(t.request || t.body))}</span>
-        <span class="thread-meta">${badge(t)}${view === 'skipped' ? '' : draftChip(t)}${dueChip(t, now)}${t.important ? `<span class="chip" title="Important contact">${icon('user', 12)}Important</span>` : ''}</span>
+        <span class="thread-preview">${esc(preview(t.request || t.snippet || t.body))}</span>
+        <span class="thread-meta">${badge(t)}${view === 'skipped' ? '' : draftChip(t)}${dueChip(t, now)}${t.important ? `<span class="chip" title="${t.source === 'gmail' ? 'Starred in Gmail' : 'Important contact'}">${icon('user', 12)}${t.source === 'gmail' ? 'Starred' : 'Important'}</span>` : ''}${t.source === 'gmail' ? `<span class="chip" title="Imported from Gmail">${icon('mail', 12)}Gmail</span>` : ''}</span>
       </span>
     </a></li>`).join('')}</ul>`;
 }

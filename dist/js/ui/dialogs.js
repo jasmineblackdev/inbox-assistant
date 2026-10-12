@@ -33,7 +33,7 @@ export function renderDialogs(el) {
       <section class="settings-section"><h3>Your name</h3>
         <label class="field"><span>Used in your greeting and the reply template sign-off</span><input class="input" name="name" required maxlength="40" autocomplete="given-name"></label></section>
       <section class="settings-section"><h3>Review routine</h3>
-        <div class="setting-row"><div><strong>Weekdays · 8:00 AM Eastern</strong><small>A morning review needs a live Gmail connection and a background scheduler, so it isn’t running yet.</small></div><span class="chip chip-warn">Planned · not active</span></div></section>
+        <div class="setting-row"><div><strong>Weekdays · 8:00 AM Eastern</strong><small>Unattended reviews need a server-side Gmail connection and a scheduler. Triageo only reads Gmail while this tab is open, so this isn’t running.</small></div><span class="chip chip-warn">Planned · not active</span></div></section>
       <section class="settings-section"><h3>How Triageo prioritizes</h3>
         <ol class="priority-list"><li>Urgent requests and deadlines within 48 hours</li><li>Important contacts requiring action</li><li>Requests waiting more than 48 hours</li><li>Routine messages needing a reply</li></ol>
         <p class="muted small">Promotions, automated messages and threads that don’t need a reply are set aside. Any edit to a draft removes its approval.</p></section>
@@ -44,16 +44,7 @@ export function renderDialogs(el) {
   </dialog>
 
   <dialog id="connectionDialog" class="dialog" aria-labelledby="connTitle">
-    <div class="dialog-body">
-      <header class="dialog-head"><div><h2 id="connTitle">Gmail connection</h2><p><span class="status-pill static"><span class="status-dot"></span>Not connected</span></p></div>${close}</header>
-      <p>Triageo can’t read or send Gmail yet. A Gmail connection you use elsewhere, such as in a chat assistant, is separate from this app.</p>
-      <div class="conn-cols">
-        <div><h3>Available now</h3><ul class="ticks"><li>${icon('check', 14)}Manual import</li><li>${icon('check', 14)}Priority sorting</li><li>${icon('check', 14)}Conversation review</li><li>${icon('check', 14)}Editable drafts and notes</li><li>${icon('check', 14)}Individual approval</li><li>${icon('check', 14)}Plain-text export</li></ul></div>
-        <div><h3>Needs a server integration</h3><ul class="ticks ticks-off"><li>${icon('x', 14)}Gmail sign-in and full-thread sync</li><li>${icon('x', 14)}AI draft generation</li><li>${icon('x', 14)}Weekday background reviews</li></ul></div>
-      </div>
-      <div class="callout">${icon('shield-check', 16)}<p><strong>Sending is disabled.</strong> If it’s ever added, each send would require approving the exact draft, a signed-in identity, duplicate protection and Gmail write consent.</p></div>
-      <footer class="dialog-foot"><button type="button" class="btn btn-primary" data-close>Got it</button></footer>
-    </div>
+    <div class="dialog-body" id="connBody"></div>
   </dialog>
 
   <dialog id="confirmDialog" class="dialog dialog-sm" aria-labelledby="confirmTitle">
