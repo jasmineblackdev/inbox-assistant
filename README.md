@@ -29,7 +29,7 @@ Without the server (or with missing settings) the app runs in manual mode exactl
 ### Data and security
 
 - Google refresh tokens are encrypted (AES-256-GCM) in Postgres; sessions are signed HttpOnly cookies; state-changing requests require a same-origin header.
-- Only addresses in `ALLOWED_EMAILS` can connect, so strangers can't spend your OpenAI credits.
+- Only addresses in `ALLOWED_EMAILS` can connect Gmail. Each user pays for their own AI drafts.
 - Thread copies and AI drafts are kept for 14 days. **Disconnect** revokes Google access and deletes the account's server data.
 - Thread text is sent through OpenRouter to the user's chosen model, billed to that user's credits. Each user's OpenRouter key is obtained by OAuth PKCE and stored encrypted. Email content is treated as untrusted data in the prompt.
 
