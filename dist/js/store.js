@@ -3,7 +3,9 @@
 import { KEY, HOUR, classify, canExport, isActive, isSetAside, sortActive } from './logic.js';
 
 // `server` mirrors /api/me and is never persisted locally.
-export const state = { items: [], demo: false, name: 'Jasmine', query: '', server: { loaded: false, configured: false, user: null, schedule: '' } };
+// localName is only for manual mode; when signed in, the account's name wins. (The old `name` field held a
+// built-in default, so it is ignored.)
+export const state = { items: [], demo: false, localName: '', query: '', server: { loaded: false, configured: false, user: null, schedule: '' } };
 
 const valid = t => t && typeof t.id === 'string' && typeof t.subject === 'string' && typeof t.body === 'string';
 
@@ -11,15 +13,18 @@ export function load() {
   try {
     const saved = JSON.parse(localStorage.getItem(KEY) || 'null');
     if (saved && Array.isArray(saved.items)) { state.items = saved.items.filter(valid); state.demo = !!saved.demo; }
-    if (saved && typeof saved.name === 'string' && saved.name.trim()) state.name = saved.name.trim().slice(0, 40);
+    if (saved && typeof saved.localName === 'string') state.localName = saved.localName.trim().slice(0, 40);
   } catch { /* unreadable storage: start empty */ }
 }
 
 /** Returns false when the browser refuses to store data. */
 export function persist() {
-  try { localStorage.setItem(KEY, JSON.stringify({ items: state.items, demo: state.demo, name: state.name })); return true; }
+  try { localStorage.setItem(KEY, JSON.stringify({ items: state.items, demo: state.demo, localName: state.localName })); return true; }
   catch { return false; }
 }
+
+/** The name to greet and sign with: the signed-in account's, else one set in manual mode, else none. */
+export const displayName = () => (state.server.user ? state.server.user.name || '' : state.localName) || '';
 
 export const find = id => state.items.find(t => t.id === id) || null;
 
@@ -77,7 +82,7 @@ export function reminders(now = Date.now()) {
 }
 
 export function demoItems(now = Date.now()) {
-  const n = state.name;
+  const n = 'there';
   return [
     { sender: 'Alex Morgan', email: 'alex@example.com', subject: 'A quick review before tomorrow’s launch', request: 'Review the copy and flag any changes before launch.', body: `Hi ${n},\nCould you review the launch copy and let me know if anything needs adjusting? We’re aiming to wrap up tomorrow.\nThanks, Alex`, deadline: new Date(now + 20 * HOUR).toISOString(), received: new Date(now - 2 * HOUR).toISOString(), important: true },
     { sender: 'Jordan Lee', email: 'jordan@example.com', subject: 'Availability for our project check-in', request: 'Share your availability for a project check-in.', body: `Hi ${n},\nWhat times work for you for a project check-in next week?\nThanks, Jordan`, received: new Date(now - 24 * HOUR).toISOString(), important: true },
@@ -117,4 +122,4 @@ export function mergeGmail(threads) {
   return { added, updated };
 }
 
-export const replyStarter = t => `Hi ${t.sender.split(' ')[0]},\n\nThanks for reaching out. Could you share a little more detail about what you need from me?\n\nThank you,\n${state.name}`;
+export const replyStarter = t => `Hi ${t.sender.split(' ')[0]},\n\nThanks for reaching out. Could you share a little more detail about what you need from me?\n\nThank you,\n${displayName() || '[your name]'}`;

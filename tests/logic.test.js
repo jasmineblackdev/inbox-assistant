@@ -68,7 +68,11 @@ test('reminders only come from saved active threads', () => {
   state.items = [base({ deadline: new Date(NOW + 5 * HOUR).toISOString() }), base({ deadline: new Date(NOW - HOUR).toISOString() }), base({ received: new Date(NOW - 72 * HOUR).toISOString() }), base({ automated: true, deadline: new Date(NOW + HOUR).toISOString() })];
   assert.deepEqual(reminders(NOW).map(r => r.kind).sort(), ['due', 'overdue', 'waiting']);
 });
-test('reply template signs off with the saved name', () => {
-  state.name = 'Sam';
+test('reply template signs off with the account name, a manual-mode name, or a placeholder', () => {
+  state.server.user = { name: 'Sam' }; state.localName = 'Local';
   assert.match(replyStarter(base()), /Hi Alex,[\s\S]*Thank you,\nSam$/);
+  state.server.user = null;
+  assert.match(replyStarter(base()), /Thank you,\nLocal$/);
+  state.localName = '';
+  assert.match(replyStarter(base()), /Thank you,\n\[your name\]$/, 'no built-in name');
 });

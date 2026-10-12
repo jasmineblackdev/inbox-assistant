@@ -378,12 +378,12 @@ function bindForms() {
     e.preventDefault();
     const f = new FormData(e.target);
     const name = f.get('name').trim().slice(0, 40);
-    if (name) state.name = name;
+    if (!state.server.user) state.localName = name;
     save();
     $('#settingsDialog').close();
     if (state.server.user) {
       try {
-        const me = await api.saveMe({ name: state.name, scheduleEnabled: e.target.elements.scheduleEnabled ? f.has('scheduleEnabled') : undefined, aiModel: f.get('aiModel') || undefined });
+        const me = await api.saveMe({ name: name || undefined, scheduleEnabled: e.target.elements.scheduleEnabled ? f.has('scheduleEnabled') : undefined, aiModel: f.get('aiModel') || undefined });
         state.server.user = me.user;
       } catch (err) { toast(`Saved here, but not on the server: ${err.message}`, { tone: 'error' }); }
     }

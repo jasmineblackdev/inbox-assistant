@@ -1,6 +1,6 @@
 import { icon } from '../icons.js';
 import { esc } from '../format.js';
-import { state } from '../store.js';
+import { state, displayName } from '../store.js';
 import { status, lastCheck, aiStatus, aiConnectButton } from './connection.js';
 import { icon as ic } from '../icons.js';
 
@@ -33,7 +33,7 @@ export function renderDialogs(el) {
     <form id="settingsForm" class="dialog-body">
       <header class="dialog-head"><div><h2 id="settingsTitle">Settings</h2><p>Saved in this browser only.</p></div>${close}</header>
       <section class="settings-section"><h3>Your name</h3>
-        <label class="field"><span>Used in your greeting, the reply template, and AI draft sign-offs</span><input class="input" name="name" required maxlength="40" autocomplete="given-name"></label></section>
+        <label class="field"><span>Used in your greeting, the reply template, and AI draft sign-offs</span><input class="input" name="name" maxlength="40" placeholder="Optional" autocomplete="given-name"></label></section>
       <section class="settings-section" id="aiSection"></section>
       <section class="settings-section" id="scheduleSection"></section>
       <section class="settings-section"><h3>How Triageo prioritizes</h3>
@@ -68,7 +68,7 @@ export function openImport() {
 }
 
 export function openSettings() {
-  document.getElementById('settingsForm').elements.name.value = state.name;
+  document.getElementById('settingsForm').elements.name.value = displayName();
   const u = state.server.user, live = status() === 'connected' || status() === 'expired';
   const ai = aiStatus(), models = state.server.models || [];
   document.getElementById('aiSection').innerHTML = ai === 'none' ? '' : `<h3>AI drafting</h3>

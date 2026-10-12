@@ -1,7 +1,7 @@
 import { icon } from '../icons.js';
 import { esc, greeting, until, ago, initials } from '../format.js';
 import { href } from '../router.js';
-import { state } from '../store.js';
+import { state, displayName } from '../store.js';
 
 export function renderHeader(el) {
   el.innerHTML = `
@@ -22,9 +22,10 @@ export function renderHeader(el) {
 
 export function updateHeader(reminders) {
   const now = new Date();
-  document.getElementById('greeting').textContent = `${greeting(now)}, ${state.name}`;
+  const name = displayName();
+  document.getElementById('greeting').textContent = name ? `${greeting(now)}, ${name}` : greeting(now);
   document.getElementById('today').textContent = now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
-  document.getElementById('accountInitials').textContent = initials(state.name);
+  document.getElementById('accountInitials').innerHTML = name ? esc(initials(name)) : icon('user', 16);
   const n = reminders.length;
   const bell = document.getElementById('bellBtn');
   bell.querySelector('.bell-dot').hidden = !n;
@@ -40,7 +41,7 @@ export function updateHeader(reminders) {
     <p class="menu-foot">Calculated from conversations saved in this browser. No email is checked in the background.</p>`;
 
   document.getElementById('accountMenu').innerHTML = `
-    <div class="menu-head menu-account">${'<span class="account-avatar">' + esc(initials(state.name)) + '</span>'}<span><strong>${esc(state.name)}</strong><small>${state.server.user ? esc(state.server.user.email) : 'Local workspace · this browser only'}</small></span></div>
+    <div class="menu-head menu-account"><span class="account-avatar">${name ? esc(initials(name)) : icon('user', 16)}</span><span><strong>${esc(name || (state.server.user ? state.server.user.email : 'Not signed in'))}</strong><small>${state.server.user ? esc(state.server.user.email) : 'Local workspace · this browser only'}</small></span></div>
     <button type="button" class="menu-item" role="menuitem" data-action="open-settings">${icon('settings', 16)}Settings</button>
     <a class="menu-item" role="menuitem" href="${href('approved')}">${icon('check-check', 16)}Approved drafts</a>
     <button type="button" class="menu-item" role="menuitem" data-action="open-connection">${icon('plug-zap', 16)}Gmail connection</button>
